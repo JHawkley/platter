@@ -1,13 +1,23 @@
-define(['exports', 'module', './group', './node'], function (exports, module, _group, _node) {
+define(['exports', '../factory/base', './group', './node'], function (exports, _factoryBase, _group, _node) {
   'use strict';
 
+  Object.defineProperty(exports, '__esModule', {
+    value: true
+  });
+
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _Factory = _interopRequireDefault(_factoryBase);
 
   var _Group = _interopRequireDefault(_group);
 
   var _Node = _interopRequireDefault(_node);
 
-  var Container,
+  var containerFactory,
+      k,
+      methods,
+      typeGroup,
+      v,
       extend = function extend(child, parent) {
     for (var key in parent) {
       if (hasProp.call(parent, key)) child[key] = parent[key];
@@ -17,36 +27,55 @@ define(['exports', 'module', './group', './node'], function (exports, module, _g
   },
       hasProp = ({}).hasOwnProperty;
 
-  Container = (function (superClass) {
-    var typeGroup;
+  exports.type = typeGroup = _Node['default'].addType('container');
 
-    extend(Container, superClass);
+  containerFactory = new _Factory['default']((function (superClass) {
+    extend(_Class, superClass);
 
-    typeGroup = _Node['default'].addType('container');
-
-    function Container(x, y) {
-      _Group['default'].init(this, x, y, ~_Node['default'].types['group'] >>> 0, typeGroup);
+    function _Class(x, y) {
+      _Class.__super__.constructor.call(this, x, y);
     }
 
-    Container.prototype.adoptObj = function (obj) {
-      var ref, type;
-      if (obj === this) {
-        throw new Error('a group may not adopt itself');
-      }
-      type = (ref = obj.type) != null ? ref : 0;
-      if (type === 0 || !!(this._filteredNodeTypes & type)) {
-        throw new Error('object is not a permitted type for this group');
-      }
-      this.children.push(obj);
-      return typeof obj.wasAdoptedBy === 'function' ? obj.wasAdoptedBy(this) : void 0;
+    _Class.prototype.toString = function () {
+      return 'Platter.space.Container#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
     };
 
-    Container.prototype.toString = function () {
-      return 'Platter.space.Container({x: ' + this.x + ', y: ' + this.y + '})';
-    };
+    return _Class;
+  })(_Group['default'].ctor));
 
-    return Container;
-  })(_Group['default']);
+  exports.methods = methods = {
+    filter: {
+      init: function init() {
+        return this.filter = {
+          allowed: _Node['default'].types['group'],
+          excluded: 0
+        };
+      },
+      seal: function seal() {
+        return Object.freeze(this.filter);
+      }
+    },
+    type: {
+      finalize: function finalize() {
+        _group.methods.type.finalize.call(this);
+        return this.type |= typeGroup;
+      }
+    }
+  };
 
-  module.exports = Container;
+  for (k in _group.methods) {
+    v = _group.methods[k];
+    if (k !== 'filter' && k !== 'allow' && k !== 'type') {
+      containerFactory.method(k, v);
+    }
+  }
+
+  for (k in methods) {
+    v = methods[k];
+    containerFactory.method(k, v);
+  }
+
+  exports.methods = methods;
+  exports.type = typeGroup;
+  exports['default'] = containerFactory;
 });

@@ -47,6 +47,22 @@ describe 'platter: geometry, axis-aligned bounding-box', ->
         
         expect(fn).not.toThrow()
     
+    describe 'width', ->
+      
+      it 'should provide a means to set the width', ->
+        test = {}
+        aabbMethods.width.apply.call(test, 8)
+        
+        expect(test.width).toBe 8
+    
+    describe 'height', ->
+      
+      it 'should provide a means to set the height', ->
+        test = {}
+        aabbMethods.height.apply.call(test, 16)
+        
+        expect(test.height).toBe 16
+    
     describe 'type', ->
     
       it 'should set a type of `aabb`', ->

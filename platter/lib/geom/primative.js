@@ -37,12 +37,6 @@ define(['exports', '../space/node'], function (exports, _spaceNode) {
       }
     });
 
-    Object.defineProperty(Primative.prototype, 'type', {
-      get: function get() {
-        return this._data.type;
-      }
-    });
-
     Object.defineProperty(Primative.prototype, 'filter', {
       get: function get() {
         return this._data.filter;

@@ -72,13 +72,15 @@ class Factory
     # any customization of the immutable data.
     @create = ->
       _shortHandGenerator ?= @define().seal()
-      _shortHandGenerator.create(arguments...)
+      return _shortHandGenerator.create(arguments...)
     
     # Extends or replaces the constructor used by the factory with new
     # methods and properties.  The current constructor is provided
     # as the only argument to `fn`, and if a value is returned,
     # it will replace the constructor.
-    @reopen = (fn) -> ctor = fn(ctor) ? ctor
+    @reopen = (fn) ->
+      ctor = fn(ctor) ? ctor
+      return this
     
     # Adds a construction method to the factory.  Methods are given
     # a `name` and provide a `hash` with a set of functions with special
@@ -123,6 +125,8 @@ class Factory
       else delete sealers[name]
       
       methods[name] = hash
+      
+      return this
     
     # Indicates if the factory is capable of a particular methods.
     # If the method `hash` is provided, it will check to see if it

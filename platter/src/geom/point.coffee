@@ -24,5 +24,5 @@ for k, v of primativeMethods
 for k, v of methods
   pointFactory.method(k, v)
 
-`export { methods }`
+`export { methods, typeGroup as type }`
 `export default pointFactory`

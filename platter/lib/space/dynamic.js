@@ -1,7 +1,13 @@
-define(['exports', 'module', './group', './node', '../math/vector'], function (exports, module, _group, _node, _mathVector) {
+define(['exports', '../factory/base', './group', './kinematic', './node', '../math/vector'], function (exports, _factoryBase, _group, _kinematic, _node, _mathVector) {
   'use strict';
 
+  Object.defineProperty(exports, '__esModule', {
+    value: true
+  });
+
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _Factory = _interopRequireDefault(_factoryBase);
 
   var _Group = _interopRequireDefault(_group);
 
@@ -9,7 +15,12 @@ define(['exports', 'module', './group', './node', '../math/vector'], function (e
 
   var _Vector = _interopRequireDefault(_mathVector);
 
-  var Dynamic,
+  var dynamicFactory,
+      fKin,
+      k,
+      methods,
+      typeGroup,
+      v,
       extend = function extend(child, parent) {
     for (var key in parent) {
       if (hasProp.call(parent, key)) child[key] = parent[key];
@@ -19,24 +30,86 @@ define(['exports', 'module', './group', './node', '../math/vector'], function (e
   },
       hasProp = ({}).hasOwnProperty;
 
-  Dynamic = (function (superClass) {
-    var typeGroup;
+  exports.type = typeGroup = _Node['default'].addType('dynamic');
 
-    extend(Dynamic, superClass);
+  fKin = _kinematic.type | _group.type;
 
-    typeGroup = _Node['default'].addType('dynamic');
+  dynamicFactory = new _Factory['default']((function (superClass) {
+    extend(_Class, superClass);
 
-    function Dynamic(x, y, dx, dy) {
-      _Group['default'].init(this, x, y, _Node['default'].types['group'], typeGroup);
+    function _Class(x, y, dx, dy) {
+      _Class.__super__.constructor.call(this, x, y);
       this.delta = _Vector['default'].create(dx != null ? dx : 0, dy != null ? dy : 0);
     }
 
-    Dynamic.prototype.toString = function () {
-      return 'Platter.space.Dynamic({x: ' + this.x + ', y: ' + this.y + '})';
+    _Class.prototype.checkType = function (type) {
+      switch (false) {
+        case type !== 0:
+          return true;
+        case (type & fKin) !== fKin:
+          return true;
+        case !(!!(this.filter.allowed & type) && !(this.filter.excluded & type)):
+          return true;
+        default:
+          return false;
+      }
     };
 
-    return Dynamic;
-  })(_Group['default']);
+    _Class.prototype.adoptObj = function (obj) {
+      if (obj === this) {
+        throw new Error('a group may not adopt itself');
+      }
+      if (this.checkType(obj.type)) {
+        this.children.push(obj);
+        if (typeof obj.wasAdoptedBy === 'function') {
+          obj.wasAdoptedBy(this);
+        }
+      } else {
+        throw new Error('object is not a permitted type for this group');
+      }
+      return this;
+    };
 
-  module.exports = Dynamic;
+    _Class.prototype.toString = function () {
+      return 'Platter.space.Dynamic#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
+    };
+
+    return _Class;
+  })(_Group['default'].ctor));
+
+  exports.methods = methods = {
+    filter: {
+      init: function init() {
+        return this.filter = {
+          allowed: 0,
+          excluded: _Node['default'].types['group']
+        };
+      },
+      seal: function seal() {
+        return Object.freeze(this.filter);
+      }
+    },
+    type: {
+      finalize: function finalize() {
+        _group.methods.type.finalize.call(this);
+        return this.type |= typeGroup;
+      }
+    }
+  };
+
+  for (k in _group.methods) {
+    v = _group.methods[k];
+    if (k !== 'filter' && k !== 'type') {
+      dynamicFactory.method(k, v);
+    }
+  }
+
+  for (k in methods) {
+    v = methods[k];
+    dynamicFactory.method(k, v);
+  }
+
+  exports.methods = methods;
+  exports.type = typeGroup;
+  exports['default'] = dynamicFactory;
 });

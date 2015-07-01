@@ -51,7 +51,7 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
     }
   };
 
-  typeGroup = _Node['default'].addType('chain');
+  exports.type = typeGroup = _Node['default'].addType('chain');
 
   chainFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
@@ -332,5 +332,6 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
   }
 
   exports.methods = methods;
+  exports.type = typeGroup;
   exports['default'] = chainFactory;
 });

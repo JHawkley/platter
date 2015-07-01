@@ -1,7 +1,7 @@
+`import Factory from 'platter/factory/base'`
 `import _Node from 'platter/space/node'`
 
-class Node extends _Node
-  constructor: -> _Node.init(this, arguments...)
+Node = new Factory(_Node)
 
 class Group
   constructor: (@x, @y, parent = null) ->
@@ -56,15 +56,11 @@ describe 'platter: space, node', ->
   
   node = null
   
-  beforeEach -> node = new Node()
-  
-  it 'should not be directly instantiable with `new`', ->
-    fn = -> new _Node(0, 0)
-    expect(fn).toThrow()
+  beforeEach -> node = Node.create()
   
   it 'should override `toString()`', ->
-    str = 'Platter.space.Node({x: 40, y: 10})'
-    expect(new Node(40, 10).toString()).toBe str
+    matcher = toStringHelper('Platter.space.Node#', '({x: 40, y: 10})')
+    expect(Node.create(40, 10).toString()).toMatch matcher
   
   describe 'adoption & orphanage', ->
   

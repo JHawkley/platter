@@ -107,7 +107,8 @@ define(['exports', 'module'], function (exports, module) {
       };
       this.reopen = function (fn) {
         var ref;
-        return ctor = (ref = fn(ctor)) != null ? ref : ctor;
+        ctor = (ref = fn(ctor)) != null ? ref : ctor;
+        return this;
       };
       this.method = function (name, hash) {
         if (hash.init != null) {
@@ -143,7 +144,8 @@ define(['exports', 'module'], function (exports, module) {
         } else {
           delete sealers[name];
         }
-        return methods[name] = hash;
+        methods[name] = hash;
+        return this;
       };
       this.hasMethod = function (name, hash) {
         if (hash != null) {

@@ -40,7 +40,7 @@ class QuadTree
       QuadTree.init.apply(this, arguments)
     else
       [bounds, maxObjects, maxLevels] = arguments
-      {x, y, width: w, height: h} = (bounds.asRect?() ? bounds)
+      {x, y, width: w, height: h} = (bounds.toRect?() ? bounds)
       QuadTree.init.call(this, x, y, w, h, maxObjects ? 10, maxLevels ? 4, 0)
     
   
@@ -67,7 +67,7 @@ class QuadTree
   
   # Gets a set of flags indicating which child nodes can contain the object.
   getQuads: (object) ->
-    rect = object.asRect?() ? object
+    rect = object.toRect?() ? object
     quads = quadNone
     vm = @bounds.x + (@bounds.width / 2)
     hm = @bounds.y + (@bounds.height / 2)

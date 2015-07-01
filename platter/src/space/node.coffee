@@ -36,21 +36,14 @@ class Node
       val?.adoptObj(this)
   
   Object.defineProperty @prototype, 'type',
-    get: -> @_type
+    get: -> @_data.type ? 0x00000000
 
-  constructor: -> throw new Error('this class is abstract and is not instantiable')
+  constructor: (@x, @y) ->
+    @_parent = null
   
   destroy: ->
     if @_parent?
       throw new Error('cannot be destroyed while still adopted by a group')
-  
-  # Abstract constructor for this class.  Should be called by sub-class
-  # constructors to be properly constructed.
-  @init: (instance, x, y, type) ->
-    instance.x = x ? 0
-    instance.y = y ? 0
-    instance._parent = null
-    instance._type = type ? 0x00000000
   
   # Applies a function `fn` to all ancestors of the node, starting
   # from the node's parent, heading up to the root.  The iteration
@@ -161,6 +154,6 @@ class Node
     @liftTo(lca)
     @dropInto(group)
   
-  toString: -> "Platter.space.Node({x: #{@x}, y: #{@y}})"
+  toString: -> "Platter.space.Node##{@id}({x: #{@x}, y: #{@y}})"
 
 `export default Node`

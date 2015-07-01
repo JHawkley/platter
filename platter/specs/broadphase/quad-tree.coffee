@@ -26,12 +26,12 @@ describe 'platter: broad-phase, quad-tree', ->
   tree = null
   beforeEach -> tree = new QuadTree({x: 0, y: 0, width: 20, height: 20}, 4, 4)
   
-  it 'should insert an object that does not implement `asRect()`', ->
+  it 'should insert an object that does not implement `toRect()`', ->
     object = { x: 2, y: 3, width: 5, height: 5 }
     tree.insert object
     expect(tree.objects[0]).toBe object
   
-  it 'should insert an object that does implement `asRect()`', ->
+  it 'should insert an object that does implement `toRect()`', ->
     object = new Line(2, 3, 7, 8)
     tree.insert object
     expect(tree.objects[0]).toBe object

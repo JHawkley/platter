@@ -27,7 +27,7 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
   },
       hasProp = ({}).hasOwnProperty;
 
-  typeGroup = _Node['default'].addType('aabb');
+  exports.type = typeGroup = _Node['default'].addType('aabb');
 
   aabbFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
@@ -73,6 +73,16 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
         }
       }
     },
+    width: {
+      apply: function apply(width) {
+        this.width = width;
+      }
+    },
+    height: {
+      apply: function apply(height) {
+        this.height = height;
+      }
+    },
     type: {
       finalize: function finalize() {
         return this.type = typeGroup;
@@ -91,5 +101,6 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
   }
 
   exports.methods = methods;
+  exports.type = typeGroup;
   exports['default'] = aabbFactory;
 });

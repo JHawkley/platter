@@ -35,7 +35,9 @@ chainLinkFactory = new Factory class extends Line.ctor
 methods =
   # Provides the node type.
   type:
-    finalize: -> @type = (typeGroup | Node.types['line'])
+    finalize: ->
+      lineMethods.type.finalize.call(this)
+      @type |= typeGroup
 
 for k, v of primativeMethods
   chainLinkFactory.method(k, v)
@@ -44,5 +46,5 @@ for k, v of lineMethods when k isnt 'type'
 for k, v of methods
   chainLinkFactory.method(k, v)
 
-`export { methods }`
+`export { methods, typeGroup as type }`
 `export default chainLinkFactory`

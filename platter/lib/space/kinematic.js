@@ -1,7 +1,13 @@
-define(['exports', 'module', './group', './node', '../math/vector'], function (exports, module, _group, _node, _mathVector) {
+define(['exports', '../factory/base', './group', './node', '../math/vector', '../geom/point', '../geom/circle', '../geom/aabb'], function (exports, _factoryBase, _group, _node, _mathVector, _geomPoint, _geomCircle, _geomAabb) {
   'use strict';
 
+  Object.defineProperty(exports, '__esModule', {
+    value: true
+  });
+
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _Factory = _interopRequireDefault(_factoryBase);
 
   var _Group = _interopRequireDefault(_group);
 
@@ -9,7 +15,12 @@ define(['exports', 'module', './group', './node', '../math/vector'], function (e
 
   var _Vector = _interopRequireDefault(_mathVector);
 
-  var Kinematic,
+  var allowedNodeTypes,
+      k,
+      kinematicFactory,
+      methods,
+      typeGroup,
+      v,
       extend = function extend(child, parent) {
     for (var key in parent) {
       if (hasProp.call(parent, key)) child[key] = parent[key];
@@ -19,24 +30,58 @@ define(['exports', 'module', './group', './node', '../math/vector'], function (e
   },
       hasProp = ({}).hasOwnProperty;
 
-  Kinematic = (function (superClass) {
-    var typeGroup;
+  exports.type = typeGroup = _Node['default'].addType('kinematic');
 
-    extend(Kinematic, superClass);
+  allowedNodeTypes = _geomPoint.type | _geomCircle.type | _geomAabb.type;
 
-    typeGroup = _Node['default'].addType('kinematic');
+  kinematicFactory = new _Factory['default']((function (superClass) {
+    extend(_Class, superClass);
 
-    function Kinematic(x, y, dx, dy) {
-      _Group['default'].init(this, x, y, _Node['default'].types['group'], typeGroup);
+    function _Class(x, y, dx, dy) {
+      _Class.__super__.constructor.call(this, x, y);
       this.delta = _Vector['default'].create(dx != null ? dx : 0, dy != null ? dy : 0);
     }
 
-    Kinematic.prototype.toString = function () {
-      return 'Platter.space.Kinematic({x: ' + this.x + ', y: ' + this.y + '})';
+    _Class.prototype.toString = function () {
+      return 'Platter.space.Kinematic#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
     };
 
-    return Kinematic;
-  })(_Group['default']);
+    return _Class;
+  })(_Group['default'].ctor));
 
-  module.exports = Kinematic;
+  exports.methods = methods = {
+    filter: {
+      init: function init() {
+        return this.filter = {
+          allowed: allowedNodeTypes,
+          excluded: _group.type
+        };
+      },
+      seal: function seal() {
+        return Object.freeze(this.filter);
+      }
+    },
+    type: {
+      finalize: function finalize() {
+        _group.methods.type.finalize.call(this);
+        return this.type |= typeGroup;
+      }
+    }
+  };
+
+  for (k in _group.methods) {
+    v = _group.methods[k];
+    if (k !== 'filter' && k !== 'allow' && k !== 'type') {
+      kinematicFactory.method(k, v);
+    }
+  }
+
+  for (k in methods) {
+    v = methods[k];
+    kinematicFactory.method(k, v);
+  }
+
+  exports.methods = methods;
+  exports.type = typeGroup;
+  exports['default'] = kinematicFactory;
 });

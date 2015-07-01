@@ -1,24 +1,31 @@
+`import Factory from '../factory/base'`
 `import Group from './group'`
+`import { methods as groupMethods } from './group'`
 `import Node from './node'`
 
-class Container extends Group
+typeGroup = Node.addType 'container'
 
-  typeGroup = Node.addType 'container'
+containerFactory = new Factory class extends Group.ctor
   
-  constructor: (x, y) ->
-    # Only accepts other groups as children.
-    Group.init(this, x, y, (~Node.types['group'] >>> 0), typeGroup)
+  constructor: (x, y) -> super(x, y)
   
-  # Adopts a single node, so long as it is a group.
-  adoptObj: (obj) ->
-    if obj is this
-      throw new Error('a group may not adopt itself')
-    type = (obj.type ? 0x00000000)
-    if type is 0x00000000 or !!(@_filteredNodeTypes & type)
-      throw new Error('object is not a permitted type for this group')
-    @children.push obj
-    obj.wasAdoptedBy?(this)
-  
-  toString: -> "Platter.space.Container({x: #{@x}, y: #{@y}})"
+  toString: -> "Platter.space.Container##{@id}({x: #{@x}, y: #{@y}})"
 
-`export default Container`
+methods =
+  # Sets the filter to specifically allow only groups.
+  filter:
+    init: -> @filter = { allowed: Node.types['group'], excluded: 0x00000000 }
+    seal: -> Object.freeze(@filter)
+  # Provides the node type.
+  type:
+    finalize: ->
+      groupMethods.type.finalize.call(this)
+      @type |= typeGroup
+
+for k, v of groupMethods when k not in ['filter', 'allow', 'type']
+  containerFactory.method(k, v)
+for k, v of methods
+  containerFactory.method(k, v)
+
+`export { methods, typeGroup as type }`
+`export default containerFactory`

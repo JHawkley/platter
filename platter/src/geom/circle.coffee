@@ -34,5 +34,5 @@ for k, v of primativeMethods
 for k, v of methods
   circleFactory.method(k, v)
 
-`export { methods }`
+`export { methods, typeGroup as type }`
 `export default circleFactory`

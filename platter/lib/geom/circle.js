@@ -27,7 +27,7 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
   },
       hasProp = ({}).hasOwnProperty;
 
-  typeGroup = _Node['default'].addType('circle');
+  exports.type = typeGroup = _Node['default'].addType('circle');
 
   circleFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
@@ -96,5 +96,6 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
   }
 
   exports.methods = methods;
+  exports.type = typeGroup;
   exports['default'] = circleFactory;
 });

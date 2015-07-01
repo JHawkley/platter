@@ -1,13 +1,23 @@
-define(['exports', 'module', './node', '../utils/find-bounds', '../utils/es6'], function (exports, module, _node, _utilsFindBounds, _utilsEs6) {
+define(['exports', '../factory/base', './node', '../utils/find-bounds', '../utils/es6'], function (exports, _factoryBase, _node, _utilsFindBounds, _utilsEs6) {
   'use strict';
 
+  Object.defineProperty(exports, '__esModule', {
+    value: true
+  });
+
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _Factory = _interopRequireDefault(_factoryBase);
 
   var _Node = _interopRequireDefault(_node);
 
   var _findBounds = _interopRequireDefault(_utilsFindBounds);
 
-  var Group,
+  var groupFactory,
+      k,
+      methods,
+      typeGroup,
+      v,
       extend = function extend(child, parent) {
     for (var key in parent) {
       if (hasProp.call(parent, key)) child[key] = parent[key];
@@ -17,26 +27,31 @@ define(['exports', 'module', './node', '../utils/find-bounds', '../utils/es6'], 
   },
       hasProp = ({}).hasOwnProperty;
 
-  Group = (function (superClass) {
-    var typeGroup;
+  exports.type = typeGroup = _Node['default'].addType('group');
 
-    extend(Group, superClass);
+  groupFactory = new _Factory['default']((function (superClass) {
+    extend(_Class, superClass);
 
-    typeGroup = _Node['default'].addType('group');
+    Object.defineProperty(_Class.prototype, 'filter', {
+      get: function get() {
+        return this._data.filter;
+      }
+    });
 
-    function Group() {
-      throw new Error('this class is abstract and is not instantiable');
+    function _Class(x, y) {
+      _Class.__super__.constructor.call(this, x, y);
+      this._rect = {};
+      this.children = [];
     }
 
-    Group.init = function (instance, x, y, filter, group) {
-      group = (group != null ? group : 0) | typeGroup;
-      _Node['default'].init(instance, x, y, group);
-      instance._filteredNodeTypes = filter != null ? filter : 0;
-      instance.children = [];
-      return instance._rect = {};
+    _Class.prototype.destroy = function () {
+      if (this.children.length > 0) {
+        throw new Error('cannot be destroyed with children adopted');
+      }
+      return _Class.__super__.destroy.call(this);
     };
 
-    Group.prototype[_utilsEs6.iteratorSymbol] = function () {
+    _Class.prototype[_utilsEs6.iteratorSymbol] = function () {
       var currentIndex, result, subIterator;
       currentIndex = 0;
       subIterator = null;
@@ -82,7 +97,7 @@ define(['exports', 'module', './node', '../utils/find-bounds', '../utils/es6'], 
       };
     };
 
-    Group.prototype.adopt = function () {
+    _Class.prototype.adopt = function () {
       var i, len, obj;
       for (i = 0, len = arguments.length; i < len; i++) {
         obj = arguments[i];
@@ -91,22 +106,24 @@ define(['exports', 'module', './node', '../utils/find-bounds', '../utils/es6'], 
       return this;
     };
 
-    Group.prototype.adoptObj = function (obj) {
-      var ref;
+    _Class.prototype.adoptObj = function (obj) {
+      var type;
       if (obj === this) {
         throw new Error('a group may not adopt itself');
       }
-      if (!!(this._filteredNodeTypes & ((ref = obj.type) != null ? ref : 0))) {
+      type = obj.type;
+      if (!!(this.filter.allowed & type) && !(this.filter.excluded & type)) {
+        this.children.push(obj);
+        if (typeof obj.wasAdoptedBy === 'function') {
+          obj.wasAdoptedBy(this);
+        }
+      } else {
         throw new Error('object is not a permitted type for this group');
-      }
-      this.children.push(obj);
-      if (typeof obj.wasAdoptedBy === 'function') {
-        obj.wasAdoptedBy(this);
       }
       return this;
     };
 
-    Group.prototype.orphan = function () {
+    _Class.prototype.orphan = function () {
       var i, len, obj;
       for (i = 0, len = arguments.length; i < len; i++) {
         obj = arguments[i];
@@ -115,7 +132,7 @@ define(['exports', 'module', './node', '../utils/find-bounds', '../utils/es6'], 
       return this;
     };
 
-    Group.prototype.orphanObj = function (obj) {
+    _Class.prototype.orphanObj = function (obj) {
       var idx;
       idx = this.children.indexOf(obj);
       if (idx === -1) {
@@ -128,7 +145,7 @@ define(['exports', 'module', './node', '../utils/find-bounds', '../utils/es6'], 
       return this;
     };
 
-    Group.prototype.toRect = function () {
+    _Class.prototype.toRect = function () {
       var child, rectOut, rects;
       rectOut = this._rect;
       rects = (function () {
@@ -149,12 +166,53 @@ define(['exports', 'module', './node', '../utils/find-bounds', '../utils/es6'], 
       return rectOut;
     };
 
-    Group.prototype.toString = function () {
-      return 'Platter.space.Group({x: ' + this.x + ', y: ' + this.y + '})';
+    _Class.prototype.toString = function () {
+      return 'Platter.space.Group#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
     };
 
-    return Group;
-  })(_Node['default']);
+    return _Class;
+  })(_Node['default']));
 
-  module.exports = Group;
+  exports.methods = methods = {
+    filter: {
+      init: function init() {
+        return this.filter = {
+          allowed: 0,
+          excluded: 0
+        };
+      },
+      seal: function seal() {
+        return Object.freeze(this.filter);
+      }
+    },
+    allow: {
+      apply: function apply(flags) {
+        return this.filter.allowed |= flags;
+      },
+      finalize: function finalize() {
+        if (this.filter.allowed === 0) {
+          return this.filter.allowed = ~0 >>> 0;
+        }
+      }
+    },
+    exclude: {
+      apply: function apply(flags) {
+        return this.filter.excluded |= flags;
+      }
+    },
+    type: {
+      finalize: function finalize() {
+        return this.type = typeGroup;
+      }
+    }
+  };
+
+  for (k in methods) {
+    v = methods[k];
+    groupFactory.method(k, v);
+  }
+
+  exports.methods = methods;
+  exports.type = typeGroup;
+  exports['default'] = groupFactory;
 });

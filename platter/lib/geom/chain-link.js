@@ -27,7 +27,7 @@ define(['exports', '../factory/base', '../space/node', './line', './primative'],
   },
       hasProp = ({}).hasOwnProperty;
 
-  typeGroup = _Node['default'].addType('chain-link');
+  exports.type = typeGroup = _Node['default'].addType('chain-link');
 
   chainLinkFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
@@ -79,7 +79,8 @@ define(['exports', '../factory/base', '../space/node', './line', './primative'],
   exports.methods = methods = {
     type: {
       finalize: function finalize() {
-        return this.type = typeGroup | _Node['default'].types['line'];
+        _line.methods.type.finalize.call(this);
+        return this.type |= typeGroup;
       }
     }
   };
@@ -102,5 +103,6 @@ define(['exports', '../factory/base', '../space/node', './line', './primative'],
   }
 
   exports.methods = methods;
+  exports.type = typeGroup;
   exports['default'] = chainLinkFactory;
 });

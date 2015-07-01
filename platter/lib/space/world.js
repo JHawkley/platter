@@ -1,13 +1,23 @@
-define(['exports', 'module', './group', './node'], function (exports, module, _group, _node) {
+define(['exports', '../factory/base', './group', './node'], function (exports, _factoryBase, _group, _node) {
   'use strict';
 
+  Object.defineProperty(exports, '__esModule', {
+    value: true
+  });
+
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _Factory = _interopRequireDefault(_factoryBase);
 
   var _Group = _interopRequireDefault(_group);
 
   var _Node = _interopRequireDefault(_node);
 
-  var World,
+  var k,
+      methods,
+      typeGroup,
+      v,
+      worldFactory,
       extend = function extend(child, parent) {
     for (var key in parent) {
       if (hasProp.call(parent, key)) child[key] = parent[key];
@@ -17,54 +27,131 @@ define(['exports', 'module', './group', './node'], function (exports, module, _g
   },
       hasProp = ({}).hasOwnProperty;
 
-  World = (function (superClass) {
-    var typeGroup;
+  exports.type = typeGroup = _Node['default'].addType('world');
 
-    extend(World, superClass);
+  worldFactory = new _Factory['default']((function (superClass) {
+    extend(_Class, superClass);
 
-    typeGroup = _Node['default'].addType('world');
-
-    function World(bounds) {
-      var ref, ref1;
-      if (bounds == null) {
-        throw new Error('argument `bounds` must be provided');
+    Object.defineProperty(_Class.prototype, 'x', {
+      get: function get() {
+        return this._data.x;
       }
-      _Group['default'].init(this, bounds.x, bounds.y, null, typeGroup);
-      this.width = (function () {
-        if ((ref = bounds.width) != null) {
-          return ref;
-        } else {
-          throw new Error('missing argument: bounds.width');
-        }
-      })();
-      this.height = (function () {
-        if ((ref1 = bounds.height) != null) {
-          return ref1;
-        } else {
-          throw new Error('missing argument: bounds.height');
-        }
-      })();
+    });
+
+    Object.defineProperty(_Class.prototype, 'y', {
+      get: function get() {
+        return this._data.y;
+      }
+    });
+
+    Object.defineProperty(_Class.prototype, 'width', {
+      get: function get() {
+        return this._data.width;
+      }
+    });
+
+    Object.defineProperty(_Class.prototype, 'height', {
+      get: function get() {
+        return this._data.height;
+      }
+    });
+
+    function _Class() {
+      this._parent = null;
+      this._rect = {};
+      this.children = [];
       this.time = 0;
     }
 
-    World.prototype.step = function (timeLapsed) {
+    _Class.prototype.step = function (timeLapsed) {
       return this.time += timeLapsed;
     };
 
-    World.prototype.wasAdoptedBy = function () {
+    _Class.prototype.wasAdoptedBy = function () {
       throw new Error('worlds must remain a root node');
     };
 
-    World.prototype.asRect = function () {
+    _Class.prototype.toRect = function () {
       return this;
     };
 
-    World.prototype.toString = function () {
-      return 'Platter.space.World({x: ' + this.x + ', y: ' + this.y + ', width: ' + this.width + ', height: ' + this.height + '})';
+    _Class.prototype.contentAsRect = function () {
+      return _Group['default'].ctor.prototype.toRect.call(this);
     };
 
-    return World;
-  })(_Group['default']);
+    _Class.prototype.toString = function () {
+      var bounds;
+      bounds = '{x: ' + this.x + ', y: ' + this.y + ', width: ' + this.width + ', height: ' + this.height + '}';
+      return 'Platter.space.World#' + this.id + '(' + bounds + ')';
+    };
 
-  module.exports = World;
+    return _Class;
+  })(_Group['default'].ctor));
+
+  exports.methods = methods = {
+    filter: {
+      init: function init() {
+        return this.filter = {
+          allowed: _Node['default'].types['group'],
+          excluded: 0
+        };
+      },
+      seal: function seal() {
+        return Object.freeze(this.filter);
+      }
+    },
+    position: {
+      init: function init() {
+        this.x = 0;
+        return this.y = 0;
+      },
+      apply: function apply(x, y) {
+        this.x = x;
+        this.y = y;
+      }
+    },
+    dimension: {
+      apply: function apply(width, height) {
+        this.width = width;
+        this.height = height;
+      },
+      finalize: function finalize() {
+        if (!(this.width != null && this.height != null) || this.width <= 0 || this.height <= 0) {
+          throw new Error('a dimension must be provided');
+        }
+      }
+    },
+    width: {
+      apply: function apply(width) {
+        this.width = width;
+      }
+    },
+    height: {
+      apply: function apply(height) {
+        this.height = height;
+      }
+    },
+    type: {
+      finalize: function finalize() {
+        _group.methods.type.finalize.call(this);
+        return this.type |= typeGroup;
+      }
+    }
+  };
+
+  for (k in _group.methods) {
+    v = _group.methods[k];
+    if (k !== 'filter' && k !== 'allow' && k !== 'exclude' && k !== 'type') {
+      worldFactory.method(k, v);
+    }
+  }
+
+  for (k in methods) {
+    v = methods[k];
+    worldFactory.method(k, v);
+  }
+
+  exports.methods = methods;
+  exports.type = typeGroup;
+  exports['default'] = worldFactory;
 });

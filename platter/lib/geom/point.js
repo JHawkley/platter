@@ -27,7 +27,7 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
   },
       hasProp = ({}).hasOwnProperty;
 
-  typeGroup = _Node['default'].addType('point');
+  exports.type = typeGroup = _Node['default'].addType('point');
 
   pointFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
@@ -79,5 +79,6 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
   }
 
   exports.methods = methods;
+  exports.type = typeGroup;
   exports['default'] = pointFactory;
 });

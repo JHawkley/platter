@@ -1,21 +1,25 @@
+`import Factory from '../factory/base'`
 `import Node from './node'`
 `import findBounds from '../utils/find-bounds'`
 `import { iteratorSymbol, isIterable } from '../utils/es6'`
 
-class Group extends Node
+typeGroup = Node.addType 'group'
 
-  typeGroup = Node.addType 'group'
+groupFactory = new Factory class extends Node
 
-  constructor: -> throw new Error('this class is abstract and is not instantiable')
+  Object.defineProperty @prototype, 'filter',
+    get: -> @_data.filter
+
+  constructor: (x, y) ->
+    super(x, y)
+    # Reusable object for `toRect()`.
+    @_rect = {}
+    @children = []
   
-  # Abstract constructor for this class.  Should be called by sub-class
-  # constructors to be properly constructed.
-  @init: (instance, x, y, filter, group) ->
-    group = (group ? 0x00000000) | typeGroup
-    Node.init(instance, x, y, group)
-    instance._filteredNodeTypes = filter ? 0x00000000
-    instance.children = []
-    instance._rect = {}
+  destroy: ->
+    if @children.length > 0
+      throw new Error('cannot be destroyed with children adopted')
+    super()
   
   # ES6-compatible iterator.  Is used by `Platter.utils.es6.forUsing()`
   # to iterate over all the group's descendants.
@@ -58,10 +62,12 @@ class Group extends Node
   adoptObj: (obj) ->
     if obj is this
       throw new Error('a group may not adopt itself')
-    if !!(@_filteredNodeTypes & (obj.type ? 0x00000000))
+    type = obj.type
+    if !!(@filter.allowed & type) and !(@filter.excluded & type)
+      @children.push obj
+      obj.wasAdoptedBy?(this)
+    else
       throw new Error('object is not a permitted type for this group')
-    @children.push obj
-    obj.wasAdoptedBy?(this)
     return this
   
   # Orphans one or more nodes.
@@ -90,6 +96,34 @@ class Group extends Node
     rectOut.y += @y
     return rectOut
   
-  toString: -> "Platter.space.Group({x: #{@x}, y: #{@y}})"
+  toString: -> "Platter.space.Group##{@id}({x: #{@x}, y: #{@y}})"
 
-`export default Group`
+methods =
+  # Sets the filter, excluding certain types of nodes from being
+  # children of the group.
+  #
+  # This has no relation to the primative `mask` and `group`
+  # filters, which have to do with what they may collide with.
+  filter:
+    init: -> @filter = { allowed: 0x00000000, excluded: 0x00000000 }
+    seal: -> Object.freeze(@filter)
+  # Allows a specific node type to be added to the group.
+  # If never applied, the finalizer will default to all types.
+  allow:
+    apply: (flags) ->
+      @filter.allowed |= flags
+    finalize: ->
+      if @filter.allowed is 0x00000000
+        @filter.allowed = (~0x00000000 >>> 0)
+  # Prevents a specific node type from being added to the group.
+  exclude:
+    apply: (flags) -> @filter.excluded |= flags
+  # Provides the node type.
+  type:
+    finalize: -> @type = typeGroup
+
+for k, v of methods
+  groupFactory.method(k, v)
+
+`export { methods, typeGroup as type }`
+`export default groupFactory`

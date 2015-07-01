@@ -63,7 +63,7 @@ define(["exports", "module"], function (exports, module) {
         QuadTree.init.apply(this, arguments);
       } else {
         bounds = arguments[0], maxObjects = arguments[1], maxLevels = arguments[2];
-        ref1 = (ref = typeof bounds.asRect === "function" ? bounds.asRect() : void 0) != null ? ref : bounds, x = ref1.x, y = ref1.y, w = ref1.width, h = ref1.height;
+        ref1 = (ref = typeof bounds.toRect === "function" ? bounds.toRect() : void 0) != null ? ref : bounds, x = ref1.x, y = ref1.y, w = ref1.width, h = ref1.height;
         QuadTree.init.call(this, x, y, w, h, maxObjects != null ? maxObjects : 10, maxLevels != null ? maxLevels : 4, 0);
       }
     }
@@ -88,7 +88,7 @@ define(["exports", "module"], function (exports, module) {
 
     QuadTree.prototype.getQuads = function (object) {
       var h, hm, leftQuadrant, quads, rect, ref, rightQuadrant, vm, w, x, y;
-      rect = (ref = typeof object.asRect === "function" ? object.asRect() : void 0) != null ? ref : object;
+      rect = (ref = typeof object.toRect === "function" ? object.toRect() : void 0) != null ? ref : object;
       quads = quadNone;
       vm = this.bounds.x + this.bounds.width / 2;
       hm = this.bounds.y + this.bounds.height / 2;

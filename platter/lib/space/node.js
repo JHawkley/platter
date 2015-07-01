@@ -55,25 +55,21 @@ define(['exports', 'module', '../math/matrix', '../utils/lowest-common-ancestor'
 
     Object.defineProperty(Node.prototype, 'type', {
       get: function get() {
-        return this._type;
+        var ref;
+        return (ref = this._data.type) != null ? ref : 0;
       }
     });
 
-    function Node() {
-      throw new Error('this class is abstract and is not instantiable');
+    function Node(x, y) {
+      this.x = x;
+      this.y = y;
+      this._parent = null;
     }
 
     Node.prototype.destroy = function () {
       if (this._parent != null) {
         throw new Error('cannot be destroyed while still adopted by a group');
       }
-    };
-
-    Node.init = function (instance, x, y, type) {
-      instance.x = x != null ? x : 0;
-      instance.y = y != null ? y : 0;
-      instance._parent = null;
-      return instance._type = type != null ? type : 0;
     };
 
     Node.prototype.iterateUpToRoot = function (fn) {
@@ -184,7 +180,7 @@ define(['exports', 'module', '../math/matrix', '../utils/lowest-common-ancestor'
     };
 
     Node.prototype.toString = function () {
-      return 'Platter.space.Node({x: ' + this.x + ', y: ' + this.y + '})';
+      return 'Platter.space.Node#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
     };
 
     return Node;

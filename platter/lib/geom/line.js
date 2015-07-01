@@ -27,7 +27,7 @@ define(['exports', '../factory/base', '../space/node', './primative', '../math/v
   },
       hasProp = ({}).hasOwnProperty;
 
-  typeGroup = _Node['default'].addType('line');
+  exports.type = typeGroup = _Node['default'].addType('line');
 
   lineFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
@@ -186,5 +186,6 @@ define(['exports', '../factory/base', '../space/node', './primative', '../math/v
   }
 
   exports.methods = methods;
+  exports.type = typeGroup;
   exports['default'] = lineFactory;
 });

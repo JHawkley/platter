@@ -7,9 +7,6 @@ class Primative extends Node
   
   Object.defineProperty @prototype, 'y',
     get: -> @_data.y ? 0
-  
-  Object.defineProperty @prototype, 'type',
-    get: -> @_data.type
     
   Object.defineProperty @prototype, 'filter',
     get: -> @_data.filter
