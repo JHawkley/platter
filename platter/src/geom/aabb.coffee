@@ -21,11 +21,11 @@ aabbFactory = new Factory class extends Primative
 
 methods =
   # Sets the dimensions, width and height, of the box.
-  dimension:
+  dimensions:
     apply: (@width, @height) -> return
     finalize: ->
       if not (@width? and @height?) or @width <= 0 or @height <= 0
-        throw new Error('a dimension must be provided')
+        throw new Error('both dimensions must be provided')
   # Sets the width of the box.
   width:
     apply: (@width) -> return

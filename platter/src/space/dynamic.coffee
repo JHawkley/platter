@@ -1,22 +1,34 @@
 `import Factory from '../factory/base'`
 `import Group, {type as fGroup} from './group'`
 `import { methods as groupMethods } from './group'`
-`import {type as fKinematic} from './kinematic'`
 `import Node from './node'`
 `import Vector from '../math/vector'`
 
 typeGroup = Node.addType 'dynamic'
-fKin = fKinematic | fGroup
 
 dynamicFactory = new Factory class extends Group.ctor
   
+  Object.defineProperty @prototype, 'delta',
+    get: -> @_instanceData.delta
+    set: (val) ->
+      { x, y } = val
+      if not(x? and y?)
+        throw new Error('not a proper vector with `x` and `y` properties')
+      @_instanceData.delta.setXY(x, y)
+  
   constructor: (x, y, dx, dy) ->
     super(x, y)
-    @delta = Vector.create(dx ? 0, dy ? 0)
+    _instanceData = @_instanceData ?= { delta: null }
+    _instanceData.delta = Vector.create(dx ? 0, dy ? 0)
+  
+  destroy: ->
+    super()
+    _instanceData = @_instanceData
+    _instanceData.delta.release()
+    _instanceData.delta = null
   
   checkType: (type) -> switch
     when type is 0x00000000 then true
-    when (type & fKin) is fKin then true
     when (!!(@filter.allowed & type) and !(@filter.excluded & type)) then true
     else false
   

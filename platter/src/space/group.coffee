@@ -21,7 +21,7 @@ groupFactory = new Factory class extends Node
       throw new Error('cannot be destroyed with children adopted')
     super()
   
-  # ES6-compatible iterator.  Is used by `Platter.utils.es6.forUsing()`
+  # ES6-compatible iterator.  Is used by `Platter.utils.es6.iterateOn()`
   # to iterate over all the group's descendants.
   this.prototype[iteratorSymbol] = ->
     currentIndex = 0

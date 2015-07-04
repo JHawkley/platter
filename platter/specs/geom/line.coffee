@@ -5,6 +5,7 @@
 `import { methods as primativeMethods } from 'platter/geom/primative'`
 `import Vector, { ImmutableVector, SimpleVector } from 'platter/math/vector'`
 `import q from 'platter/utils/tolerant-compare'`
+`import { compareAngleDegrees as qd } from 'platter/utils/angle-compare'`
 
 describe 'platter: geometry, line', ->
   
@@ -108,8 +109,22 @@ describe 'platter: geometry, line', ->
         
         { x: nx, y: ny } = test.normal
         
-        expect(q(nx, u)).toBe true
-        expect(q(ny, -u)).toBe true
+        expect(q(nx, -u)).toBe true
+        expect(q(ny, u)).toBe true
+      
+      it 'should set the grade of the line, assuming a character moving left to right', ->
+        test1 = {pt1: {x: 2, y: 1}, pt2: {x: 1, y: 0}}
+        test2 = {pt1: {x: 1, y: 0}, pt2: {x: 0, y: 0}}
+        test3 = {pt1: {x: 0, y: 0}, pt2: {x: -1, y: 1}}
+        
+        lineMethods.normal.finalize.call(test1)
+        expect(qd(test1.grade * (180/Math.PI), 45)).toBe true
+        
+        lineMethods.normal.finalize.call(test2)
+        expect(qd(test2.grade * (180/Math.PI), 0)).toBe true
+        
+        lineMethods.normal.finalize.call(test3)
+        expect(qd(test3.grade * (180/Math.PI), -45)).toBe true
     
     describe 'rectangle', ->
       

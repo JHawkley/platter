@@ -66,6 +66,10 @@ define(['exports', '../factory/base', '../space/node', './line', './primative'],
       return _Class.__super__.destroy.call(this);
     };
 
+    _Class.prototype.wasAdoptedBy = function () {
+      throw new Error('must be hosted by a chain to be in the world tree');
+    };
+
     _Class.prototype.toString = function () {
       var pt1, pt2;
       pt1 = '{x: ' + this.point1.x + ', y: ' + this.point1.y + '}';

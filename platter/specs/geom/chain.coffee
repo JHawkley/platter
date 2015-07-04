@@ -3,7 +3,7 @@
 `import { methods as chainMethods } from 'platter/geom/chain'`
 `import Primative from 'platter/geom/primative'`
 `import { methods as primativeMethods } from 'platter/geom/primative'`
-`import { forUsing } from 'platter/utils/es6'`
+`import { iterateOn } from 'platter/utils/es6'`
 
 cp = (pt1, pt2) -> return switch
   when not (pt1? and pt2?) then false
@@ -157,6 +157,18 @@ describe 'platter: geometry, chain', ->
         expect(fn).not.toThrow()
         expect(fn).toThrow()
     
+    describe 'reverse', ->
+      
+      it 'should set the reverse flag', ->
+        test = {}
+        chainMethods.reverse.init.call(test)
+        
+        expect(test.reversed).toBe false
+        
+        chainMethods.reverse.apply.call(test)
+        
+        expect(test.reversed).toBe true
+    
     describe 'links', ->
       
       eHitBox = (1 << 2)
@@ -176,6 +188,37 @@ describe 'platter: geometry, chain', ->
         expect(test.links.length).toBe 4
         
         expectation = for point in [point1, point2, point3, point4]
+          { x: point.x + 2, y: point.y + 4 }
+        
+        host = {}
+        links = (gen.create(host) for gen in test.links)
+        for link, i in links then switch i
+          when 0
+            expect(cp(link.point1, expectation[0])).toBe true
+            expect(cp(link.point2, expectation[1])).toBe true
+          when 1
+            expect(cp(link.point1, expectation[1])).toBe true
+            expect(cp(link.point2, expectation[2])).toBe true
+          when 2
+            expect(cp(link.point1, expectation[2])).toBe true
+            expect(cp(link.point2, expectation[3])).toBe true
+          when 3
+            expect(cp(link.point1, expectation[3])).toBe true
+            expect(cp(link.point2, expectation[0])).toBe true
+      
+      it 'should reverse the winding when the `reverse` flag is set', ->
+        test = {
+          x: 2, y: 4, links: [], reversed: true
+          filter: { group: 0x00000000, mask: 0x00000000}
+          points: [point1, point2, point3, point4, point1]
+        }
+        
+        chainMethods.links.seal.call(test)
+        
+        expect(Object.isFrozen(test.links)).toBe true
+        expect(test.links.length).toBe 4
+        
+        expectation = for point in [point1, point4, point3, point2]
           { x: point.x + 2, y: point.y + 4 }
         
         host = {}
@@ -308,7 +351,7 @@ describe 'platter: geometry, chain', ->
       
       it 'should iterate over the hosted chain-links', ->
         results = []
-        forUsing chain, (val) -> results.push val
+        iterateOn chain, (val) -> results.push val
         
         expect(chain.links).toEqual results
       

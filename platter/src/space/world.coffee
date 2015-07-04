@@ -50,11 +50,11 @@ methods =
     init: -> @x = 0; @y = 0
     apply: (@x, @y) -> return
   # Sets the dimensions, width and height, of the world space.
-  dimension:
+  dimensions:
     apply: (@width, @height) -> return
     finalize: ->
       if not (@width? and @height?) or @width <= 0 or @height <= 0
-        throw new Error('a dimension must be provided')
+        throw new Error('both dimensions must be provided')
   # Sets the width of the world space.
   width:
     apply: (@width) -> return

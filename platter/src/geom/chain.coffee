@@ -61,11 +61,18 @@ chainFactory = new Factory class extends Primative
   this.prototype[iteratorSymbol] = ->
     nextIndex = 0
     links = @links
+    results = {}
     
     return {
-       next: -> switch nextIndex
-         when links.length then { value: undefined, done: true }
-         else { value: links[nextIndex++], done: false }
+      next: ->
+        switch nextIndex
+          when links.length
+            results.value = undefined
+            results.done = true
+          else
+            results.value = links[nextIndex++]
+            results.done = false
+        return results
     }
   
   getNext: (ref) -> @_instanceData.nextHash[ref.id]
@@ -136,6 +143,11 @@ methods =
         if @points.length <= 3
           throw new Error('not a closed polygon; more a line or point')
         @closed = true
+  # Reverses the winding of the points.  Helpful if your level editor
+  # exports them in clock-wise order.
+  reverse:
+    init: -> @reversed = false
+    apply: -> @reversed = true
   # Creates chain-link generators for use by the constructor.
   # This ensures the chain-links also share information.
   links:
@@ -144,7 +156,7 @@ methods =
       { x: offX, y: offY } = this
       links = @links
       lastPoint = null
-      for curPoint in @points
+      for curPoint in @points by (if @reversed then -1 else 1)
         if lastPoint?
           generator = ChainLink.define()
             .translate(offX, offY)

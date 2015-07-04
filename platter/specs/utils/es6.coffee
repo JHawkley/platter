@@ -1,4 +1,5 @@
-`import { iteratorSymbol, forUsing, isIterable } from 'platter/utils/es6'`
+`import { iteratorSymbol, iterateOn as iOn, isIterable } from 'platter/utils/es6'`
+`import { es6_iterateOn, es5_iterateOn } from 'platter/utils/es6'`
 
 sym = Symbol?.iterator ? '@@iterator'
 
@@ -46,46 +47,56 @@ describe 'platter: utilities, es6', ->
       testIterable = new FakeArray('work', 'it', 'hot', 'stuff')
       expect(isIterable(testIterable)).toBe true
   
-  describe 'forUsing', ->
+  describe 'iterateOn', ->
     testArray = null
     testHash = null
     
     beforeEach ->
       testArray = new FakeArray('work', 'it', 'hot', 'stuff')
       testHash = new FakeHash(zero: 0, one: 1, two: 2, three: 3)
+      
+    it 'should be defined as `iterateOn` on the module', ->
+      expect(typeof iOn).toBe 'function'
     
-    it 'should not iterate over something that isn\'t iterable', ->
-      fn = -> forUsing {}, (val) -> results.push val
-      expect(fn).toThrow()
-    
-    it 'should iterate over any object that provides an iterator', ->
-      results = []
-      forUsing testArray, (val) -> results.push val
-      
-      expect(results).toEqual ['work', 'it', 'hot', 'stuff']
-      
-      results = []
-      forUsing testHash, (val) -> results.push val
-      
-      expect(results.length).toBe 4
-      expect(results).toContain 0
-      expect(results).toContain 1
-      expect(results).toContain 2
-      expect(results).toContain 3
-    
-    it 'should iterate over any object that is itself an iterator', ->
-      results = []
-      iter = testArray[iteratorSymbol]()
-      forUsing iter, (val) -> results.push val
-      
-      expect(results).toEqual ['work', 'it', 'hot', 'stuff']
-      
-      results = []
-      iter = testHash[iteratorSymbol]()
-      forUsing iter, (val) -> results.push val
-      
-      expect(results.length).toBe 4
-      expect(results).toContain 0
-      expect(results).toContain 1
-      expect(results).toContain 2
-      expect(results).toContain 3
+    for ver, iterateOn of { es6: es6_iterateOn, es5: es5_iterateOn }
+      describe "#{ver} version", ->
+        
+        if iterateOn?
+          it 'should not iterate over something that isn\'t iterable', ->
+            fn = -> iterateOn {}, (val) -> results.push val
+            expect(fn).toThrow()
+          
+          it 'should iterate over any object that provides an iterator', ->
+            results = []
+            iterateOn testArray, (val) -> results.push val
+            
+            expect(results).toEqual ['work', 'it', 'hot', 'stuff']
+            
+            results = []
+            iterateOn testHash, (val) -> results.push val
+            
+            expect(results.length).toBe 4
+            expect(results).toContain 0
+            expect(results).toContain 1
+            expect(results).toContain 2
+            expect(results).toContain 3
+          
+          it 'should iterate over any object that is itself an iterator', ->
+            results = []
+            iter = testArray[iteratorSymbol]()
+            iterateOn iter, (val) -> results.push val
+            
+            expect(results).toEqual ['work', 'it', 'hot', 'stuff']
+            
+            results = []
+            iter = testHash[iteratorSymbol]()
+            iterateOn iter, (val) -> results.push val
+            
+            expect(results.length).toBe 4
+            expect(results).toContain 0
+            expect(results).toContain 1
+            expect(results).toContain 2
+            expect(results).toContain 3
+        else
+          it 'should report the inability to test', ->
+            console.log 'cannot test; feature not supported by test environment'

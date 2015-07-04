@@ -4,6 +4,7 @@
 `import Line from 'platter/geom/line'`
 `import { methods as lineMethods } from 'platter/geom/line'`
 `import { methods as primativeMethods } from 'platter/geom/primative'`
+`import Group from 'platter/space/group'`
 
 describe 'platter: geometry, chain-link', ->
   
@@ -40,6 +41,13 @@ describe 'platter: geometry, chain-link', ->
       instance = ChainLink.define().from(13, 20).to(5, 9).create({})
       matcher = toStringHelper('Platter.geom.ChainLink#', '({x: 13, y: 20}, {x: 5, y: 9})')
       expect(instance.toString()).toMatch matcher
+    
+    it 'should not be able to be a child of a group', ->
+      instance = ChainLink.define().from(13, 20).to(5, 9).create({})
+      group = Group.create()
+      fn = -> group.adopt(instance)
+      
+      expect(fn).toThrow()
     
     it 'should have instance constructor to set `host`', ->
       host = {id: 0, getPrev: (-> prevLink), getNext: (-> nextLink)}

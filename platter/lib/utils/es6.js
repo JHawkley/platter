@@ -4,11 +4,17 @@ define(['exports'], function (exports) {
   Object.defineProperty(exports, '__esModule', {
     value: true
   });
-  var forUsing, isIterable, iteratorSymbol, ref;
+  var es5_iterateOn, es6_iterateOn, isIterable, iterateOn, iteratorSymbol, ref;
+
+  try {
+    exports.es6_iterateOn = es6_iterateOn = new Function('it', 'fn', 'var v; for (v of it) { fn(v); }');
+  } catch (_error) {
+    exports.es6_iterateOn = es6_iterateOn = null;
+  }
 
   exports.iteratorSymbol = iteratorSymbol = (ref = typeof Symbol !== 'undefined' && Symbol !== null ? Symbol.iterator : void 0) != null ? ref : '@@iterator';
 
-  exports.forUsing = forUsing = function (iterable, fn) {
+  exports.es5_iterateOn = es5_iterateOn = function (iterable, fn) {
     var it, iterator;
     if (iterable[iteratorSymbol] != null) {
       iterator = iterable[iteratorSymbol]();
@@ -22,11 +28,15 @@ define(['exports'], function (exports) {
     }
   };
 
+  exports.iterateOn = iterateOn = es6_iterateOn != null ? es6_iterateOn : es5_iterateOn;
+
   exports.isIterable = isIterable = function (obj) {
     return obj[iteratorSymbol] != null;
   };
 
   exports.iteratorSymbol = iteratorSymbol;
-  exports.forUsing = forUsing;
+  exports.iterateOn = iterateOn;
   exports.isIterable = isIterable;
+  exports.es6_iterateOn = es6_iterateOn;
+  exports.es5_iterateOn = es5_iterateOn;
 });

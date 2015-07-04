@@ -1,4 +1,4 @@
-define(['exports', '../factory/base', './group', './kinematic', './node', '../math/vector'], function (exports, _factoryBase, _group, _kinematic, _node, _mathVector) {
+define(['exports', '../factory/base', './group', './node', '../math/vector'], function (exports, _factoryBase, _group, _node, _mathVector) {
   'use strict';
 
   Object.defineProperty(exports, '__esModule', {
@@ -16,7 +16,6 @@ define(['exports', '../factory/base', './group', './kinematic', './node', '../ma
   var _Vector = _interopRequireDefault(_mathVector);
 
   var dynamicFactory,
-      fKin,
       k,
       methods,
       typeGroup,
@@ -32,21 +31,43 @@ define(['exports', '../factory/base', './group', './kinematic', './node', '../ma
 
   exports.type = typeGroup = _Node['default'].addType('dynamic');
 
-  fKin = _kinematic.type | _group.type;
-
   dynamicFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
 
+    Object.defineProperty(_Class.prototype, 'delta', {
+      get: function get() {
+        return this._instanceData.delta;
+      },
+      set: function set(val) {
+        var x, y;
+        x = val.x, y = val.y;
+        if (!(x != null && y != null)) {
+          throw new Error('not a proper vector with `x` and `y` properties');
+        }
+        return this._instanceData.delta.setXY(x, y);
+      }
+    });
+
     function _Class(x, y, dx, dy) {
+      var _instanceData;
       _Class.__super__.constructor.call(this, x, y);
-      this.delta = _Vector['default'].create(dx != null ? dx : 0, dy != null ? dy : 0);
+      _instanceData = this._instanceData != null ? this._instanceData : this._instanceData = {
+        delta: null
+      };
+      _instanceData.delta = _Vector['default'].create(dx != null ? dx : 0, dy != null ? dy : 0);
     }
+
+    _Class.prototype.destroy = function () {
+      var _instanceData;
+      _Class.__super__.destroy.call(this);
+      _instanceData = this._instanceData;
+      _instanceData.delta.release();
+      return _instanceData.delta = null;
+    };
 
     _Class.prototype.checkType = function (type) {
       switch (false) {
         case type !== 0:
-          return true;
-        case (type & fKin) !== fKin:
           return true;
         case !(!!(this.filter.allowed & type) && !(this.filter.excluded & type)):
           return true;

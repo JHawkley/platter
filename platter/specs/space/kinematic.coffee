@@ -12,6 +12,8 @@
 `import Line from 'platter/geom/line'`
 `import Chain from 'platter/geom/chain'`
 
+`import Vector, { SimpleVector, ImmutableVector } from 'platter/math/vector'`
+
 Node = new Factory(_Node)
 
 class Box
@@ -80,29 +82,141 @@ describe 'platter: space, kinematic', ->
         matcher = toStringHelper('Platter.space.Kinematic#', '({x: 40, y: 10})')
         expect(Kinematic.create(40, 10).toString()).toMatch matcher
     
-    it 'should not accept groups as children', ->
-      group = Group.create(0, 0)
+    it 'should unset the `_instanceData` when released', ->
+      aabb = AABB.define().dimensions(8, 16).create()
+      kinematic.adopt(aabb).setBody(aabb)
       
-      fn = -> kinematic.adopt(group)
+      expect(kinematic.body?).toBe true
+      expect(kinematic.delta?).toBe true
       
+      fn = -> kinematic.release()
+      
+      # `aabb` is still a child.  It should throw here.
       expect(fn).toThrow()
+      
+      expect(kinematic.body?).toBe true
+      expect(kinematic.delta?).toBe true
+      
+      kinematic.body = null
+      kinematic.orphan(aabb)
+      
+      expect(fn).not.toThrow()
+      
+      expect(kinematic.body?).toBe false
+      expect(kinematic.delta?).toBe false
     
-    it 'should accept only `point`, `circle`, and `AABB` nodes as children', ->
-      point = Point.create()
-      circle = Circle.define().radius(5).create()
-      aabb = AABB.define().dimension(5, 10).create()
+    describe 'children', ->
+    
+      it 'should not accept groups as children', ->
+        group = Group.create(0, 0)
+        
+        fn = -> kinematic.adopt(group)
+        
+        expect(fn).toThrow()
       
-      line = Line.define().points(0, 0, 1, 1).create()
-      chain = Chain.define().add(0, 0).add(1, 1).create()
-      typeless = Node.create()
+      it 'should accept only `point`, `circle`, and `AABB` nodes as children', ->
+        point = Point.create()
+        circle = Circle.define().radius(5).create()
+        aabb = AABB.define().dimensions(5, 10).create()
+        
+        line = Line.define().points(0, 0, 1, 1).create()
+        chain = Chain.define().add(0, 0).add(1, 1).create()
+        typeless = Node.create()
+        
+        allowed = [point, circle, aabb]
+        excluded = [line, chain, typeless]
+        
+        for node in allowed
+          fn = -> kinematic.adopt(node)
+          expect(fn).not.toThrow()
+        
+        for node in excluded
+          fn = -> kinematic.adopt(node)
+          expect(fn).toThrow()
+    
+    describe 'delta vector', ->
       
-      allowed = [point, circle, aabb]
-      excluded = [line, chain, typeless]
+      it 'should not be settable to `null`', ->
+        fn = -> kinematic.delta = null
+        
+        expect(fn).toThrow()
       
-      for node in allowed
-        fn = -> kinematic.adopt(node)
+      it 'should retain the same instance when set', ->
+        curVector = kinematic.delta
+        newVector = new Vector(5, 10)
+        
+        kinematic.delta = newVector
+        
+        expect(kinematic.delta).not.toBe newVector
+        expect(kinematic.delta).toBe curVector
+      
+      it 'should be settable with any sort of vector, including literals', ->
+        litVector = { x: 8, y: 16 }
+        immVector = new ImmutableVector(5, 10)
+        simVector = new SimpleVector(3, 6)
+        notVector = { dx: 1, dy: 2 }
+        
+        allowed = [ litVector, immVector, simVector ]
+        for v in allowed
+          fn = -> kinematic.delta = v
+          expect(fn).not.toThrow()
+          expect(kinematic.delta.x).toBe v.x
+          expect(kinematic.delta.y).toBe v.y
+        
+        fn = -> kinematic.delta = notVector
+        expect(fn).toThrow()
+        expect(kinematic.delta.x).not.toBe notVector.dx
+        expect(kinematic.delta.y).not.toBe notVector.dy
+    
+    describe 'body primative', ->
+      
+      it 'should only allow a body to be a child', ->
+        aabb = AABB.define().dimensions(8, 16).create()
+        
+        fn1 = -> kinematic.body = aabb
+        fn2 = -> kinematic.adopt(aabb).body = aabb
+        
+        expect(fn1).toThrow()
+        expect(fn2).not.toThrow()
+      
+      it 'should only permit AABBs as the body', ->
+        
+        aabb = AABB.define().dimensions(8, 16).create()
+        disallowed = [
+          Point.create()
+          Circle.define().radius(5).create()
+          Line.define().points(0, 0, 1, 1).create()
+          Chain.define().add(0, 0).add(1, 1).create()
+          Node.create()
+        ]
+        
+        for node in disallowed
+          fn = -> kinematic.adopt(node).body = node
+          expect(fn).toThrow()
+        
+        fn = -> kinematic.adopt(aabb).body = aabb
+        
         expect(fn).not.toThrow()
       
-      for node in excluded
-        fn = -> kinematic.adopt(node)
-        expect(fn).toThrow()
+      it 'should unset the body if it is orphaned', ->
+        aabb = AABB.define().dimensions(8, 16).create()
+        kinematic.adopt(aabb).body = aabb
+        
+        expect(kinematic.body).toBe aabb
+        
+        retVal = kinematic.orphan(aabb)
+        
+        expect(kinematic.body?).toBe false
+        expect(retVal).toBe kinematic
+    
+    describe 'flipping', ->
+      
+      it 'should alias `flipX` to `mirror`', ->
+        expect(kinematic.flipX).toBe false
+        kinematic.mirror = true
+        expect(kinematic.flipX).toBe true
+      
+      it 'should alias `flipY` to `invert`', ->
+        expect(kinematic.flipY).toBe false
+        kinematic.invert = true
+        expect(kinematic.flipY).toBe true

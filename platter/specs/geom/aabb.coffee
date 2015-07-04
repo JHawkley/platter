@@ -7,7 +7,7 @@
 describe 'platter: geometry, axis-aligned bounding-box', ->
   
   it 'should extend `Primative`', ->
-    instance = AABB.define().dimension(20, 30).create()
+    instance = AABB.define().dimensions(20, 30).create()
     expect(instance instanceof Primative).toBe true
   
   describe 'methods', ->
@@ -20,11 +20,11 @@ describe 'platter: geometry, axis-aligned bounding-box', ->
       for k, v of aabbMethods
         expect(AABB.hasMethod(k, v)).toBe true
     
-    describe 'dimension', ->
+    describe 'dimensions', ->
       
       it 'should provide a means to set the dimensions', ->
         test = {}
-        aabbMethods.dimension.apply.call(test, 8, 16)
+        aabbMethods.dimensions.apply.call(test, 8, 16)
         
         expect(test.width).toBe 8
         expect(test.height).toBe 16
@@ -39,11 +39,11 @@ describe 'platter: geometry, axis-aligned bounding-box', ->
         ]
         control = { width: 50, height: 50 }
         
-        fns = (-> aabbMethods.dimension.finalize.call(test) for test in tests)
+        fns = (-> aabbMethods.dimensions.finalize.call(test) for test in tests)
         
         expect(fn).toThrow for fn in fns
         
-        fn = -> aabbMethods.dimension.finalize.call(control)
+        fn = -> aabbMethods.dimensions.finalize.call(control)
         
         expect(fn).not.toThrow()
     
@@ -73,12 +73,12 @@ describe 'platter: geometry, axis-aligned bounding-box', ->
   describe 'implementation', ->
   
     it 'should override `toString()`', ->
-      instance = AABB.define().translate(8, 16).dimension(20, 30).create()
+      instance = AABB.define().translate(8, 16).dimensions(20, 30).create()
       matcher = toStringHelper('Platter.geom.AABB#', '({x: 8, y: 16, width: 20, height: 30})')
       expect(instance.toString()).toMatch matcher
     
     it 'should implement the `toRect()` interface', ->
-      aabb = AABB.define().translate(13, 20).dimension(5, 9).create()
+      aabb = AABB.define().translate(13, 20).dimensions(5, 9).create()
       rect = aabb.toRect()
       expectation = { x: 13, y: 20, width: 5, height: 9 }
       
@@ -87,7 +87,7 @@ describe 'platter: geometry, axis-aligned bounding-box', ->
       return
     
     it 'should be immutable', ->
-      aabb = AABB.define().translate(8, 16).dimension(20, 30).create()
+      aabb = AABB.define().translate(8, 16).dimensions(20, 30).create()
       props = ['width', 'height']
       fns = ((-> aabb[prop] = 0) for prop in props)
       

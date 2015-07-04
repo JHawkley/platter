@@ -27,6 +27,9 @@ chainLinkFactory = new Factory class extends Line.ctor
     @_instanceData = null
     super()
   
+  wasAdoptedBy: ->
+    throw new Error('must be hosted by a chain to be in the world tree')
+  
   toString: ->
     pt1 = "{x: #{@point1.x}, y: #{@point1.y}}"
     pt2 = "{x: #{@point2.x}, y: #{@point2.y}}"

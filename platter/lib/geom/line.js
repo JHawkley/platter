@@ -50,6 +50,12 @@ define(['exports', '../factory/base', '../space/node', './primative', '../math/v
       }
     });
 
+    Object.defineProperty(_Class.prototype, 'grade', {
+      get: function get() {
+        return this._data.grade;
+      }
+    });
+
     function _Class() {
       _Class.__super__.constructor.call(this);
     }
@@ -141,12 +147,17 @@ define(['exports', '../factory/base', '../space/node', './primative', '../math/v
     },
     normal: {
       finalize: function finalize() {
-        var dx, dy, len, ref, ref1, x1, x2, y1, y2;
+        var a, dx, dy, len, n, ref, ref1, x1, x2, y1, y2;
         (ref = this.pt1, x1 = ref.x, y1 = ref.y), (ref1 = this.pt2, x2 = ref1.x, y2 = ref1.y);
-        dx = -(x2 - x1);
-        dy = y2 - y1;
+        dx = x2 - x1;
+        dy = -(y2 - y1);
         len = Math.sqrt(dy * dy + dx * dx);
-        return this.normal = _mathVector.ImmutableVector.create(dy / len, dx / len);
+        this.normal = n = _mathVector.ImmutableVector.create(dy / len, dx / len);
+        a = n.angle;
+        if (a < 0) {
+          a += Math.PI * 2;
+        }
+        return this.grade = (a + Math.PI) * -1;
       }
     },
     rectangle: {

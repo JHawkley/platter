@@ -37,10 +37,92 @@ define(['exports', '../factory/base', './group', './node', '../math/vector', '..
   kinematicFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
 
-    function _Class(x, y, dx, dy) {
+    Object.defineProperty(_Class.prototype, 'body', {
+      get: function get() {
+        return this._instanceData.body;
+      },
+      set: function set(val) {
+        return this.setBody(val);
+      }
+    });
+
+    Object.defineProperty(_Class.prototype, 'delta', {
+      get: function get() {
+        return this._instanceData.delta;
+      },
+      set: function set(val) {
+        var x, y;
+        x = val.x, y = val.y;
+        if (!(x != null && y != null)) {
+          throw new Error('not a proper vector with `x` and `y` properties');
+        }
+        return this._instanceData.delta.setXY(x, y);
+      }
+    });
+
+    Object.defineProperty(_Class.prototype, 'mirror', {
+      get: function get() {
+        return this.flipX;
+      },
+      set: function set(val) {
+        return this.flipX = val;
+      }
+    });
+
+    Object.defineProperty(_Class.prototype, 'invert', {
+      get: function get() {
+        return this.flipY;
+      },
+      set: function set(val) {
+        return this.flipY = val;
+      }
+    });
+
+    function _Class(x, y) {
+      var _instanceData;
       _Class.__super__.constructor.call(this, x, y);
-      this.delta = _Vector['default'].create(dx != null ? dx : 0, dy != null ? dy : 0);
+      _instanceData = this._instanceData != null ? this._instanceData : this._instanceData = {
+        body: null,
+        delta: null
+      };
+      _instanceData.body = null;
+      _instanceData.delta = _Vector['default'].create(0, 0);
+      this.flipX = false;
+      this.flipY = false;
+      this.floating = true;
+      this.minClimableGrade = -45 * (Math.PI / 180);
+      this.maxClimableGrade = 45 * (Math.PI / 180);
     }
+
+    _Class.prototype.destroy = function () {
+      var _instanceData;
+      _Class.__super__.destroy.call(this);
+      _instanceData = this._instanceData;
+      _instanceData.delta.release();
+      _instanceData.body = null;
+      return _instanceData.delta = null;
+    };
+
+    _Class.prototype.setBody = function (body) {
+      if (body != null) {
+        if (body.parent !== this) {
+          throw new Error('a body must be a child of the kinematic');
+        }
+        if (!(body.type & _geomAabb.type)) {
+          throw new Error('only AABBs may be a body');
+        }
+      }
+      this._instanceData.body = body;
+      return this;
+    };
+
+    _Class.prototype.orphanObj = function (obj) {
+      _Class.__super__.orphanObj.call(this, obj);
+      if (obj === this._instanceData.body) {
+        this._instanceData.body = null;
+      }
+      return this;
+    };
 
     _Class.prototype.toString = function () {
       return 'Platter.space.Kinematic#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';

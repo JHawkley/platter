@@ -121,23 +121,22 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
     };
 
     _Class.prototype[_utilsEs6.iteratorSymbol] = function () {
-      var links, nextIndex;
+      var links, nextIndex, results;
       nextIndex = 0;
       links = this.links;
+      results = {};
       return {
         next: function next() {
           switch (nextIndex) {
             case links.length:
-              return {
-                value: void 0,
-                done: true
-              };
+              results.value = void 0;
+              results.done = true;
+              break;
             default:
-              return {
-                value: links[nextIndex++],
-                done: false
-              };
+              results.value = links[nextIndex++];
+              results.done = false;
           }
+          return results;
         }
       };
     };
@@ -268,18 +267,27 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
         }
       }
     },
+    reverse: {
+      init: function init() {
+        return this.reversed = false;
+      },
+      apply: function apply() {
+        return this.reversed = true;
+      }
+    },
     links: {
       init: function init() {
         return this.links = [];
       },
       seal: function seal() {
-        var curPoint, generator, j, lastPoint, len, links, offX, offY, ref1;
+        var curPoint, generator, j, lastPoint, len, links, offX, offY, ref1, ref2;
         offX = this.x, offY = this.y;
         links = this.links;
         lastPoint = null;
-        ref1 = this.points;
-        for (j = 0, len = ref1.length; j < len; j++) {
-          curPoint = ref1[j];
+        ref2 = this.points;
+        ref1 = this.reversed ? -1 : 1;
+        for (ref1 > 0 ? (j = 0, len = ref2.length) : j = ref2.length - 1; ref1 > 0 ? j < len : j >= 0; j += ref1) {
+          curPoint = ref2[j];
           if (lastPoint != null) {
             generator = _ChainLink['default'].define().translate(offX, offY).points(lastPoint, curPoint).group(this.filter.group).mask(this.filter.mask).seal();
             links.push(generator);

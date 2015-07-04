@@ -110,14 +110,14 @@ define(['exports', '../factory/base', './group', './node'], function (exports, _
         this.y = y;
       }
     },
-    dimension: {
+    dimensions: {
       apply: function apply(width, height) {
         this.width = width;
         this.height = height;
       },
       finalize: function finalize() {
         if (!(this.width != null && this.height != null) || this.width <= 0 || this.height <= 0) {
-          throw new Error('a dimension must be provided');
+          throw new Error('both dimensions must be provided');
         }
       }
     },

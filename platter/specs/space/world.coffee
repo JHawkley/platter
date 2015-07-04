@@ -59,11 +59,11 @@ describe 'platter: space, world', ->
         expect(test.x).toBe 8
         expect(test.y).toBe 16
     
-    describe 'dimension', ->
+    describe 'dimensions', ->
       
       it 'should provide a means to set the dimensions', ->
         test = {}
-        worldMethods.dimension.apply.call(test, 8, 16)
+        worldMethods.dimensions.apply.call(test, 8, 16)
         
         expect(test.width).toBe 8
         expect(test.height).toBe 16
@@ -78,11 +78,11 @@ describe 'platter: space, world', ->
         ]
         control = { width: 50, height: 50 }
         
-        fns = (-> worldMethods.dimension.finalize.call(test) for test in tests)
+        fns = (-> worldMethods.dimensions.finalize.call(test) for test in tests)
         
         expect(fn).toThrow for fn in fns
         
-        fn = -> worldMethods.dimension.finalize.call(control)
+        fn = -> worldMethods.dimensions.finalize.call(control)
         
         expect(fn).not.toThrow()
     
@@ -112,7 +112,7 @@ describe 'platter: space, world', ->
   describe 'implementation', ->
   
     world = null
-    beforeEach -> world = World.define().dimension(4000, 240).create()
+    beforeEach -> world = World.define().dimensions(4000, 240).create()
     
     it 'should extend `Group`', ->
       expect(world instanceof Group.ctor).toBe true

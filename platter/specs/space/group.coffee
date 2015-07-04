@@ -2,7 +2,7 @@
 `import Group from 'platter/space/group'`
 `import { methods as groupMethods } from 'platter/space/group'`
 `import Node from 'platter/space/node'`
-`import { forUsing } from 'platter/utils/es6'`
+`import { iterateOn } from 'platter/utils/es6'`
 
 class Box
   typeGroup = Node.addType 'test-box'
@@ -247,7 +247,7 @@ describe 'platter: space, group', ->
       
       it 'should iterate over leaves in the tree', ->
         results = []
-        forUsing group, (val) -> results.push val
+        iterateOn group, (val) -> results.push val
         
         expect(results).toContain child1
         expect(results).toContain child2

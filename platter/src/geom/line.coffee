@@ -16,6 +16,9 @@ lineFactory = new Factory class extends Primative
   
   Object.defineProperty @prototype, 'normal',
     get: -> @_data.normal
+    
+  Object.defineProperty @prototype, 'grade',
+    get: -> @_data.grade
   
   constructor: -> super()
   toRect: -> @_data.rect
@@ -66,13 +69,18 @@ methods =
         throw new Error('points for the line must be provided')
       @pt1 = new SimpleVector(x1 + offX, y1 + offY)
       @pt2 = new SimpleVector(x2 + offX, y2 + offY)
-  # Provides a normal for the line.
+  # Provides a normal and the grade for the line.
+  # The grade assumes a character running on the line from
+  # left to right, AKA the Mario Standard Direction, or MSD.
   normal:
     finalize: ->
       { pt1: {x: x1, y: y1 }, pt2: {x: x2, y: y2} } = this
-      dx = -(x2 - x1); dy = y2 - y1
+      dx = x2 - x1; dy = -(y2 - y1)
       len = Math.sqrt(dy*dy + dx*dx)
-      @normal = ImmutableVector.create(dy / len, dx / len)
+      @normal = n = ImmutableVector.create(dy / len, dx / len)
+      a = n.angle
+      a += Math.PI * 2 if a < 0
+      @grade = (a + Math.PI) * -1
   # Provides an appropriate rectangle bounding box.
   rectangle:
     finalize: ->
