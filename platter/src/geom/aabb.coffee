@@ -1,9 +1,11 @@
 `import Factory from '../factory/base'`
-`import Node from '../space/node'`
 `import Primative from './primative'`
+`import { methods as nodeMethods } from '../space/node'`
 `import { methods as primativeMethods } from './primative'`
-
-typeGroup = Node.addType 'aabb'
+`import { MutableVector } from '../math/vector'`
+`import { setXY } from '../math/vector-math'`
+`import { aabb as support } from './_support'`
+`import { aabb as type } from './_type'`
 
 aabbFactory = new Factory class extends Primative
   
@@ -14,7 +16,9 @@ aabbFactory = new Factory class extends Primative
     get: -> @_data.height
   
   constructor: -> super()
-  toRect: -> this
+  support: (out, v) -> support(out, this, v)
+  centerOf: (out) -> setXY(out, @x + @width / 2, @y + @height / 2)
+  toRect: (out) -> out.set(this); return out
   toString: ->
     objRep = "{x: #{@x}, y: #{@y}, width: #{@width}, height: #{@height}}"
     return "Platter.geom.AABB##{@id}(#{objRep})"
@@ -33,13 +37,15 @@ methods =
   height:
     apply: (@height) -> return
   # Provides the node type.
-  type:
-    finalize: -> @type = typeGroup
+  typeGroup:
+    finalize: -> @type.push type
 
+for k, v of nodeMethods
+  aabbFactory.method(k, v)
 for k, v of primativeMethods
   aabbFactory.method(k, v)
 for k, v of methods
   aabbFactory.method(k, v)
 
-`export { methods, typeGroup as type }`
+`export { methods }`
 `export default aabbFactory`

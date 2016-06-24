@@ -1,4 +1,4 @@
-define(['exports', '../factory/base', './group', './node', '../math/vector', '../geom/point', '../geom/circle', '../geom/aabb'], function (exports, _factoryBase, _group, _node, _mathVector, _geomPoint, _geomCircle, _geomAabb) {
+define(['exports', '../factory/base', './group', './node', './_type', '../math/vector-interpolation', '../geom/_type'], function (exports, _factoryBase, _group, _node, _type, _mathVectorInterpolation, _geom_type) {
   'use strict';
 
   Object.defineProperty(exports, '__esModule', {
@@ -11,15 +11,12 @@ define(['exports', '../factory/base', './group', './node', '../math/vector', '..
 
   var _Group = _interopRequireDefault(_group);
 
-  var _Node = _interopRequireDefault(_node);
+  var _VectorInterpolation = _interopRequireDefault(_mathVectorInterpolation);
 
-  var _Vector = _interopRequireDefault(_mathVector);
-
-  var allowedNodeTypes,
+  var allowedTypes,
       k,
       kinematicFactory,
       methods,
-      typeGroup,
       v,
       extend = function extend(child, parent) {
     for (var key in parent) {
@@ -30,16 +27,23 @@ define(['exports', '../factory/base', './group', './node', '../math/vector', '..
   },
       hasProp = ({}).hasOwnProperty;
 
-  exports.type = typeGroup = _Node['default'].addType('kinematic');
-
-  allowedNodeTypes = _geomPoint.type | _geomCircle.type | _geomAabb.type;
+  allowedTypes = [_geom_type.point, _geom_type.circle, _geom_type.aabb];
 
   kinematicFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
 
+    _Class.init = function (instance, x, y) {
+      _Class.__super__.constructor.init.call(this, instance, x, y);
+      instance.flipX = false;
+      instance.flipY = false;
+      instance.floating = true;
+      instance.minClimableGrade = -45 * (Math.PI / 180);
+      return instance.maxClimableGrade = 45 * (Math.PI / 180);
+    };
+
     Object.defineProperty(_Class.prototype, 'body', {
       get: function get() {
-        return this._instanceData.body;
+        return this._instanceData.undynesBody;
       },
       set: function set(val) {
         return this.setBody(val);
@@ -49,14 +53,6 @@ define(['exports', '../factory/base', './group', './node', '../math/vector', '..
     Object.defineProperty(_Class.prototype, 'delta', {
       get: function get() {
         return this._instanceData.delta;
-      },
-      set: function set(val) {
-        var x, y;
-        x = val.x, y = val.y;
-        if (!(x != null && y != null)) {
-          throw new Error('not a proper vector with `x` and `y` properties');
-        }
-        return this._instanceData.delta.setXY(x, y);
       }
     });
 
@@ -79,28 +75,19 @@ define(['exports', '../factory/base', './group', './node', '../math/vector', '..
     });
 
     function _Class(x, y) {
-      var _instanceData;
       _Class.__super__.constructor.call(this, x, y);
-      _instanceData = this._instanceData != null ? this._instanceData : this._instanceData = {
-        body: null,
-        delta: null
+      this._instanceData = {
+        undynesBody: null,
+        delta: new _VectorInterpolation['default']()
       };
-      _instanceData.body = null;
-      _instanceData.delta = _Vector['default'].create(0, 0);
-      this.flipX = false;
-      this.flipY = false;
-      this.floating = true;
-      this.minClimableGrade = -45 * (Math.PI / 180);
-      this.maxClimableGrade = 45 * (Math.PI / 180);
     }
 
     _Class.prototype.destroy = function () {
       var _instanceData;
       _Class.__super__.destroy.call(this);
       _instanceData = this._instanceData;
-      _instanceData.delta.release();
-      _instanceData.body = null;
-      return _instanceData.delta = null;
+      _instanceData.delta.clear();
+      return _instanceData.undynesBody = null;
     };
 
     _Class.prototype.setBody = function (body) {
@@ -108,24 +95,24 @@ define(['exports', '../factory/base', './group', './node', '../math/vector', '..
         if (body.parent !== this) {
           throw new Error('a body must be a child of the kinematic');
         }
-        if (!(body.type & _geomAabb.type)) {
+        if (!_geom_type.aabb.test(body.type)) {
           throw new Error('only AABBs may be a body');
         }
       }
-      this._instanceData.body = body;
+      this._instanceData.undynesBody = body;
       return this;
     };
 
-    _Class.prototype.orphanObj = function (obj) {
-      _Class.__super__.orphanObj.call(this, obj);
-      if (obj === this._instanceData.body) {
-        this._instanceData.body = null;
+    _Class.prototype.orphan = function (obj) {
+      _Class.__super__.orphan.call(this, obj);
+      if (obj === this._instanceData.undynesBody) {
+        this._instanceData.undynesBody = null;
       }
       return this;
     };
 
     _Class.prototype.toString = function () {
-      return 'Platter.space.Kinematic#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
+      return "Platter.space.Kinematic#" + this.id + "({x: " + this.x + ", y: " + this.y + "})";
     };
 
     return _Class;
@@ -135,25 +122,30 @@ define(['exports', '../factory/base', './group', './node', '../math/vector', '..
     filter: {
       init: function init() {
         return this.filter = {
-          allowed: allowedNodeTypes,
-          excluded: _group.type
+          included: allowedTypes.slice(0),
+          excluded: [_type.group]
         };
       },
       seal: function seal() {
-        return Object.freeze(this.filter);
+        return _group.methods.filter.seal.call(this);
       }
     },
-    type: {
+    typeGroup: {
       finalize: function finalize() {
-        _group.methods.type.finalize.call(this);
-        return this.type |= typeGroup;
+        _group.methods.typeGroup.finalize.call(this);
+        return this.type.push(_type.kinematic);
       }
     }
   };
 
+  for (k in _node.methods) {
+    v = _node.methods[k];
+    kinematicFactory.method(k, v);
+  }
+
   for (k in _group.methods) {
     v = _group.methods[k];
-    if (k !== 'filter' && k !== 'allow' && k !== 'type') {
+    if (k !== 'filter' && k !== 'include' && k !== 'typeGroup') {
       kinematicFactory.method(k, v);
     }
   }
@@ -164,6 +156,5 @@ define(['exports', '../factory/base', './group', './node', '../math/vector', '..
   }
 
   exports.methods = methods;
-  exports.type = typeGroup;
   exports['default'] = kinematicFactory;
 });

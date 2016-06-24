@@ -2,6 +2,8 @@
 
 class Primative extends Node
 
+  @init: (instance) -> return
+
   Object.defineProperty @prototype, 'x',
     get: -> @_data.x ? 0
   
@@ -11,8 +13,24 @@ class Primative extends Node
   Object.defineProperty @prototype, 'filter',
     get: -> @_data.filter
   
+  Object.defineProperty @prototype, 'proxy',
+    get: -> @_proxy ?= @makeProxy()
+  
   constructor: ->
     @_parent = null
+    @_proxy = null
+  
+  destroy: ->
+    super()
+    if @_proxy?
+      @_proxy.release()
+      @_proxy = null
+  
+  support: -> throw new Error('not implemented')
+  
+  centerOf: -> throw new Error('not implemented')
+  
+  makeProxy: -> throw new Error('not implemented')
   
   toString: -> "Platter.geom.Primative##{@id}({x: #{@x}, y: #{@y}})"
 
@@ -21,16 +39,6 @@ methods =
   translate:
     init: -> @x = 0; @y = 0
     apply: (x, y) -> @x += x; @y += y
-  # Handles sealing of the collision filter information.
-  filter:
-    init: -> @filter = { group: 0x00000000, mask: 0x00000000 }
-    seal: -> Object.freeze(@filter)
-  # Sets the filter group.
-  group:
-    apply: (flags) -> @filter.group = @filter.group | flags
-  # Sets the mask group.
-  mask:
-    apply: (flags) -> @filter.mask = @filter.mask | flags
 
 `export { methods }`
 `export default Primative`

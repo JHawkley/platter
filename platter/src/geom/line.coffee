@@ -1,10 +1,11 @@
 `import Factory from '../factory/base'`
-`import Node from '../space/node'`
 `import Primative from './primative'`
+`import { methods as nodeMethods } from '../space/node'`
 `import { methods as primativeMethods } from './primative'`
-`import { ImmutableVector, SimpleVector } from '../math/vector'`
-
-typeGroup = Node.addType 'line'
+`import { MutableVector, ImmutableVector } from '../math/vector'`
+`import { set, mul, add } from '../math/vector-math'`
+`import { line as support } from './_support'`
+`import { line as type } from './_type'`
 
 lineFactory = new Factory class extends Primative
   
@@ -21,7 +22,13 @@ lineFactory = new Factory class extends Primative
     get: -> @_data.grade
   
   constructor: -> super()
-  toRect: -> @_data.rect
+  support: (out, v) -> support(out, this, v)
+  centerOf: (out) ->
+    set(out, @point1)
+    add(out, out, @point2)
+    mul(out, out, 0.5)
+    return out
+  toRect: (out) -> out.set(@_data.rect); return out
   toString: ->
     pt1 = "{x: #{@point1.x}, y: #{@point1.y}}"
     pt2 = "{x: #{@point2.x}, y: #{@point2.y}}"
@@ -67,8 +74,9 @@ methods =
       { x: offX, y: offY, pt1: {x: x1, y: y1 }, pt2: {x: x2, y: y2} } = this
       if not (x1? and y1? and x2? and y2?)
         throw new Error('points for the line must be provided')
-      @pt1 = new SimpleVector(x1 + offX, y1 + offY)
-      @pt2 = new SimpleVector(x2 + offX, y2 + offY)
+      @pt1 = new ImmutableVector(x1 + offX, y1 + offY)
+      @pt2 = new ImmutableVector(x2 + offX, y2 + offY)
+      @x = 0; @y = 0
   # Provides a normal and the grade for the line.
   # The grade assumes a character running on the line from
   # left to right, AKA the Mario Standard Direction, or MSD.
@@ -94,13 +102,15 @@ methods =
         height: Math.abs(y1 - y2)
     seal: -> Object.freeze(@rect)
   # Provides the node type.
-  type:
-    finalize: -> @type = typeGroup
+  typeGroup:
+    finalize: -> @type.push type
 
+for k, v of nodeMethods
+  lineFactory.method(k, v)
 for k, v of primativeMethods
   lineFactory.method(k, v)
 for k, v of methods
   lineFactory.method(k, v)
 
-`export { methods, typeGroup as type }`
+`export { methods, type }`
 `export default lineFactory`

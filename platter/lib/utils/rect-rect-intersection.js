@@ -1,9 +1,9 @@
 define(["exports", "module"], function (exports, module) {
   "use strict";
 
-  var RectRectIntersection;
+  var rectRectIntersection;
 
-  RectRectIntersection = function (a, b) {
+  rectRectIntersection = function (a, b) {
     var num1, num2, x, y;
     x = Math.max(a.x, b.x);
     num1 = Math.min(a.x + a.width, b.x + b.width);
@@ -12,5 +12,5 @@ define(["exports", "module"], function (exports, module) {
     return num1 >= x && num2 >= y;
   };
 
-  module.exports = RectRectIntersection;
+  module.exports = rectRectIntersection;
 });

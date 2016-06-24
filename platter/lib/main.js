@@ -48,8 +48,7 @@ define(['exports', 'module', './broadphase/quad-tree', './geom/point', './geom/l
     math: {
       Matrix: _Matrix['default'],
       MutableVector: _mathVector.MutableVector,
-      ImmutableVector: _mathVector.ImmutableVector,
-      SimpleVector: _mathVector.SimpleVector
+      ImmutableVector: _mathVector.ImmutableVector
     },
     space: {
       Node: _Node['default'],

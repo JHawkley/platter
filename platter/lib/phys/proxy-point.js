@@ -1,180 +1,94 @@
-define(['exports', 'module', '../factory/base', '../geom/point', '../math/vector', '../math/matrix', '../space/kinematic', '../space/dynaimc'], function (exports, module, _factoryBase, _geomPoint, _mathVector, _mathMatrix, _spaceKinematic, _spaceDynaimc) {
+define(['exports', 'module', '../factory/base', './proxy-base', '../geom/_support', '../math/matrix', '../math/vector-math'], function (exports, module, _factoryBase, _proxyBase, _geom_support, _mathMatrix, _mathVectorMath) {
   'use strict';
 
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
   var _Factory = _interopRequireDefault(_factoryBase);
 
-  var _Point = _interopRequireDefault(_geomPoint);
-
-  var _Vector = _interopRequireDefault(_mathVector);
+  var _Proxy = _interopRequireDefault(_proxyBase);
 
   var _Matrix = _interopRequireDefault(_mathMatrix);
 
-  var between, movable, proxyPointFactory, set, setXY, wm;
+  var max,
+      min,
+      proxyPointFactory,
+      wm,
+      extend = function extend(child, parent) {
+    for (var key in parent) {
+      if (hasProp.call(parent, key)) child[key] = parent[key];
+    }function ctor() {
+      this.constructor = child;
+    }ctor.prototype = parent.prototype;child.prototype = new ctor();child.__super__ = parent.prototype;return child;
+  },
+      hasProp = ({}).hasOwnProperty;
 
-  movable = _spaceKinematic.type | _spaceDynaimc.type;
+  min = Math.min, max = Math.max;
 
   wm = new _Matrix['default']();
 
-  set = function (pt, other) {
-    pt.x = other.x;
-    return pt.y = other.y;
-  };
+  proxyPointFactory = new _Factory['default']((function (superClass) {
+    extend(_Class, superClass);
 
-  setXY = function (pt, x, y) {
-    py.x = x;
-    return pt.y = y;
-  };
-
-  between = function (v, x, y) {
-    var max, min;
-    min = Math.min(x, y);
-    max = Math.max(x, y);
-    return min <= v && v <= max;
-  };
-
-  proxyPointFactory = new _Factory['default']((function () {
-    Object.defineProperty(_Class.prototype, 'static', {
-      get: function get() {
-        return !(this.proxied.parent.type & movable);
-      }
-    });
-
-    function _Class(proxied) {
-      if (!(proxied instanceof _Point['default'])) {
-        throw new Error('incorrect proxy for primative');
-      }
-      this.proxied = proxied;
-      if (!this.initialized) {
-        this.oldDelta = _Vector['default'].create(0, 0);
-        this.oldPosition = {
-          x: 0,
-          y: 0
-        };
-        this.delta = _Vector['default'].create(0, 0);
-        this.points = {
-          '0': {
-            x: 0,
-            y: 0
-          },
-          '1': {
-            x: 0,
-            y: 0
-          },
-          length: 0
-        };
-        this._rect = {};
-      }
+    function _Class() {
+      return _Class.__super__.constructor.apply(this, arguments);
     }
 
-    _Class.prototype.destroy = function () {
-      this.proxied = null;
-      return this.points.length = 0;
-    };
-
-    _Class.prototype.sync = function () {
-      var flipX, flipY, oPos, proxied, ref, x, y;
-      proxied = this.proxied, oPos = this.oldPosition;
+    _Class.prototype.transform = function () {
+      var flipX, flipY, oPos, proxied, ref, sPos, x, y;
+      proxied = this.proxied, oPos = this.oldPosition, sPos = this.syncPosition;
       x = proxied.x, y = proxied.y, (ref = proxied.parent, flipX = ref.flipX, flipY = ref.flipY);
-      setXY(oPos, flipX ? -x : x, flipY ? -y : y);
+      (0, _mathVectorMath.setXY)(oPos, flipX ? -x : x, flipY ? -y : y);
       wm.reset();
       proxied.iterateUpToRoot(function (anc) {
-        if (typeof parent !== 'undefined' && parent !== null) {
+        if (anc.parent != null) {
           return wm.translate(anc.x, anc.y);
         }
       });
-      return wm.applyToPoint(oPos);
+      wm.applyToPoint(oPos);
+      return (0, _mathVectorMath.set)(sPos, oPos);
     };
 
-    _Class.prototype.update = function (axis) {
-      var d, dx, dy, oDelta, oPos, points, proxied, pt1, ref, x, y;
-      proxied = this.proxied, points = this.points, oDelta = this.oldDelta, oPos = this.oldPosition;
-      x = proxied.x, y = proxied.y, (ref = proxied.parent, d = ref.delta);
-      set(pt1 = points[0], oPos);
-      if (d != null) {
-        dx = d.x;
-        dy = d.y;
+    _Class.prototype.support = function (out, v) {
+      return (0, _geom_support.point)(out, this, v);
+    };
+
+    _Class.prototype.toRect = function (out, synced) {
+      var i, len, maxX, maxY, minX, minY, node, nodes, ref, ref1, ref2, ref3, x, y;
+      if (synced == null) {
+        synced = false;
+      }
+      if (synced) {
+        ref = this.syncPosition, x = ref.x, y = ref.y;
+        out.setProps(x, y, 0, 0);
       } else {
-        dx = 0;
-        dy = 0;
-      }
-      oDelta.setXY(dx, dy);
-      delta.setXY(dx, dy);
-      return this.reform(dx, dy);
-    };
-
-    _Class.prototype.reform = function (dx, dy) {
-      var points;
-      points = this.points;
-      switch (axis) {
-        case 'x':
-          if (dx !== 0) {
-            setXY(points[1], pt0.x + dx, pt0.y);
-            points.length = 2;
+        nodes = this.delta.nodes;
+        if (nodes.length > 0) {
+          if (nodes[0].pos === 0.0) {
+            minX = minY = Number.POSITIVE_INFINITY;
+            maxX = maxY = Number.NEGATIVE_INFINITY;
           } else {
-            points.length = 1;
+            minX = maxX = minY = maxY = 0;
           }
-          break;
-        case 'y':
-          if (dy !== 0) {
-            setXY(points[1], pt0.x, pt0.y + dy);
-            points.length = 2;
-          } else {
-            points.length = 1;
+          for (i = 0, len = nodes.length; i < len; i++) {
+            node = nodes[i];
+            ref1 = node.value, x = ref1.x, y = ref1.y;
+            minX = min(minX, x);
+            maxX = max(maxX, x);
+            minY = min(minY, y);
+            maxY = max(maxY, y);
           }
-      }
-      return this.asRect(true);
-    };
-
-    _Class.prototype.apply = function () {
-      var ndx, ndy, ref, unsafe;
-      ref = this.delta, ndx = ref.x, ndy = ref.y;
-      unsafe = false;
-      if (this['static']) {
-        if (0 === ndx || 0 === ndy) {
-          throw new Error('cannot reposition a static object');
+          ref2 = this.oldPosition, x = ref2.x, y = ref2.y;
+          out.setProps(minX + x, minY + y, maxX - minX, maxY - minY);
+        } else {
+          ref3 = this.oldPosition, x = ref3.x, y = ref3.y;
+          out.setProps(x, y, 0, 0);
         }
-      } else {
-        ({
-          x: odx,
-          y: ody
-        });
-        unsafe = !(between(ndx, 0, odx) && between(ndy, 0, ody));
-        this.proxy.parent.delta.setXY(ndx, ndy);
       }
-      return unsafe;
-    };
-
-    _Class.prototype.toRect = function (forcedUpdate) {
-      var points, rect, ref, ref1, x1, x2, y1, y2;
-      if (forcedUpdate == null) {
-        forcedUpdate = false;
-      }
-      if (!forcedUpdate) {
-        return this._rect;
-      }
-      rect = this._rect, points = this.points;
-      if (points.length === 1) {
-        set(rect, points[0]);
-        rect.width = 0;
-        rect.height = 0;
-      } else {
-        (ref = points[0], x1 = ref.x, y1 = ref.y), (ref1 = points[1], x2 = ref1.x, y2 = ref1.y);
-        rect.x = Math.min(x1, x2);
-        rect.y = Math.min(y1, y2);
-        rect.width = Math.abs(x1 - x2);
-        rect.height = Math.abs(y1 - y2);
-      }
-      return rect;
-    };
-
-    _Class.prototype.toString = function () {
-      return 'Proxied::' + this.proxied.toString();
+      return out;
     };
 
     return _Class;
-  })());
+  })(_Proxy['default']));
 
   module.exports = proxyPointFactory;
 });

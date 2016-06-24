@@ -345,7 +345,7 @@ define(['exports', 'module', './vector', '../utils/tolerant-compare'], function 
     };
 
     Matrix.prototype.toCSS = function () {
-      return 'matrix(' + this.toArray().join(', ') + ')';
+      return "matrix(" + this.toArray().join(', ') + ")";
     };
 
     Matrix.prototype.toJSON = function () {
@@ -360,7 +360,7 @@ define(['exports', 'module', './vector', '../utils/tolerant-compare'], function 
     };
 
     Matrix.prototype.toString = function () {
-      return 'Matrix({a: ' + this.a + ', b: ' + this.b + ', c: ' + this.c + ', d: ' + this.d + ', e: ' + this.e + ', f: ' + this.f + '})';
+      return "Matrix({a: " + this.a + ", b: " + this.b + ", c: " + this.c + ", d: " + this.d + ", e: " + this.e + ", f: " + this.f + "})";
     };
 
     return Matrix;

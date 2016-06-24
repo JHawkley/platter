@@ -54,21 +54,6 @@ module.exports = (grunt) ->
           {expand: true, cwd: 'tmp/specHelpers-es6', src: ['**/*.js'], dest: 'tmp/specHelpers/', ext: '.js'}
         ]
     
-    jshint:
-      options:
-        undef: true
-        expr: true
-        eqnull: true
-        shadow: true
-        multistr: true
-        '-W093': true
-        force: true
-        globals:
-          define: true
-          require: true
-      test:
-        files: { src: ['platter/lib/**/*.js'] }
-    
     jasmine:
       test:
         options:
@@ -112,14 +97,13 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks('grunt-contrib-coffee')
   grunt.loadNpmTasks('grunt-contrib-copy')
   grunt.loadNpmTasks('grunt-babel')
-  grunt.loadNpmTasks('grunt-contrib-jshint')
   grunt.loadNpmTasks('grunt-contrib-jasmine')
   grunt.loadNpmTasks('grunt-contrib-requirejs')
   grunt.loadNpmTasks('grunt-contrib-uglify')
   
   
   buildTasks = ['clean:post', 'coffee:build', 'copy:build', 'clean:build', 'babel:build']
-  testTasks = ['coffee:test', 'copy:test', 'babel:test', 'jshint:test', 'jasmine:test']
+  testTasks = ['coffee:test', 'copy:test', 'babel:test', 'jasmine:test']
   distTasks = ['requirejs:dist', 'uglify:dist']
   cleanTasks = ['clean:post']
   

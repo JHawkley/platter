@@ -1,4 +1,4 @@
-define(['exports', '../factory/base', '../space/node', './primative'], function (exports, _factoryBase, _spaceNode, _primative) {
+define(['exports', '../factory/base', './primative', '../space/node', '../math/vector', '../math/vector-math', './_support', './_type'], function (exports, _factoryBase, _primative, _spaceNode, _mathVector, _mathVectorMath, _support, _type) {
   'use strict';
 
   Object.defineProperty(exports, '__esModule', {
@@ -9,14 +9,11 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
 
   var _Factory = _interopRequireDefault(_factoryBase);
 
-  var _Node = _interopRequireDefault(_spaceNode);
-
   var _Primative = _interopRequireDefault(_primative);
 
   var aabbFactory,
       k,
       methods,
-      typeGroup,
       v,
       extend = function extend(child, parent) {
     for (var key in parent) {
@@ -26,8 +23,6 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
     }ctor.prototype = parent.prototype;child.prototype = new ctor();child.__super__ = parent.prototype;return child;
   },
       hasProp = ({}).hasOwnProperty;
-
-  exports.type = typeGroup = _Node['default'].addType('aabb');
 
   aabbFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
@@ -48,14 +43,23 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
       _Class.__super__.constructor.call(this);
     }
 
-    _Class.prototype.toRect = function () {
-      return this;
+    _Class.prototype.support = function (out, v) {
+      return (0, _support.aabb)(out, this, v);
+    };
+
+    _Class.prototype.centerOf = function (out) {
+      return (0, _mathVectorMath.setXY)(out, this.x + this.width / 2, this.y + this.height / 2);
+    };
+
+    _Class.prototype.toRect = function (out) {
+      out.set(this);
+      return out;
     };
 
     _Class.prototype.toString = function () {
       var objRep;
-      objRep = '{x: ' + this.x + ', y: ' + this.y + ', width: ' + this.width + ', height: ' + this.height + '}';
-      return 'Platter.geom.AABB#' + this.id + '(' + objRep + ')';
+      objRep = "{x: " + this.x + ", y: " + this.y + ", width: " + this.width + ", height: " + this.height + "}";
+      return "Platter.geom.AABB#" + this.id + "(" + objRep + ")";
     };
 
     return _Class;
@@ -83,12 +87,17 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
         this.height = height;
       }
     },
-    type: {
+    typeGroup: {
       finalize: function finalize() {
-        return this.type = typeGroup;
+        return this.type.push(_type.aabb);
       }
     }
   };
+
+  for (k in _spaceNode.methods) {
+    v = _spaceNode.methods[k];
+    aabbFactory.method(k, v);
+  }
 
   for (k in _primative.methods) {
     v = _primative.methods[k];
@@ -101,6 +110,5 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
   }
 
   exports.methods = methods;
-  exports.type = typeGroup;
   exports['default'] = aabbFactory;
 });

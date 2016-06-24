@@ -1,7 +1,8 @@
 define(['exports', 'module'], function (exports, module) {
   'use strict';
 
-  var Factory;
+  var Factory,
+      slice = [].slice;
 
   Factory = (function () {
     var nextId;
@@ -61,7 +62,7 @@ define(['exports', 'module'], function (exports, module) {
           },
           create: {
             value: function value() {
-              var obj, ref;
+              var obj;
               switch (_stage) {
                 case 0:
                   this.seal();
@@ -73,22 +74,30 @@ define(['exports', 'module'], function (exports, module) {
                 case -1:
                   throw new Error('cannot create more than one when unsealed');
               }
-              obj = (ref = pool.pop()) != null ? ref : Object.create(ctor.prototype, {
-                release: {
-                  value: function value() {
-                    if (typeof this.destroy === 'function') {
-                      this.destroy();
+              obj = null;
+              if ((obj = pool.pop()) != null) {
+                obj._data = _definition;
+              } else {
+                obj = Object.create(ctor.prototype, {
+                  release: {
+                    value: function value() {
+                      if (typeof this.destroy === "function") {
+                        this.destroy();
+                      }
+                      this._data = null;
+                      return pool.push(this);
                     }
-                    this._data = null;
-                    return pool.push(this);
+                  },
+                  id: {
+                    value: nextId++
                   }
-                },
-                id: {
-                  value: nextId++
-                }
-              });
-              obj._data = _definition;
-              ctor.apply(obj, arguments);
+                });
+                ctor.apply(obj);
+                obj._data = _definition;
+              }
+              if (typeof ctor.init === "function") {
+                ctor.init.apply(ctor, [obj].concat(slice.call(arguments)));
+              }
               return obj;
             }
           }

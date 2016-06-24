@@ -1,4 +1,4 @@
-define(['exports', '../factory/base', '../space/node', './primative'], function (exports, _factoryBase, _spaceNode, _primative) {
+define(['exports', '../factory/base', './primative', '../space/node', '../math/vector', '../math/vector-math', './_support', './_type', '../phys/proxy-point'], function (exports, _factoryBase, _primative, _spaceNode, _mathVector, _mathVectorMath, _support, _type, _physProxyPoint) {
   'use strict';
 
   Object.defineProperty(exports, '__esModule', {
@@ -9,14 +9,13 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
 
   var _Factory = _interopRequireDefault(_factoryBase);
 
-  var _Node = _interopRequireDefault(_spaceNode);
-
   var _Primative = _interopRequireDefault(_primative);
+
+  var _PointProxy = _interopRequireDefault(_physProxyPoint);
 
   var k,
       methods,
       pointFactory,
-      typeGroup,
       v,
       extend = function extend(child, parent) {
     for (var key in parent) {
@@ -27,8 +26,6 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
   },
       hasProp = ({}).hasOwnProperty;
 
-  exports.type = typeGroup = _Node['default'].addType('point');
-
   pointFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
 
@@ -36,12 +33,25 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
       _Class.__super__.constructor.call(this);
     }
 
-    _Class.prototype.toRect = function () {
-      return this._data.rect;
+    _Class.prototype.support = function (out, v) {
+      return (0, _support.point)(out, this, v);
+    };
+
+    _Class.prototype.centerOf = function (out) {
+      return (0, _mathVectorMath.set)(out, this);
+    };
+
+    _Class.prototype.makeProxy = function () {
+      return _PointProxy['default'].create(this);
+    };
+
+    _Class.prototype.toRect = function (out) {
+      out.set(this._data.rect);
+      return out;
     };
 
     _Class.prototype.toString = function () {
-      return 'Platter.geom.Point#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
+      return "Platter.geom.Point#" + this.id + "({x: " + this.x + ", y: " + this.y + "})";
     };
 
     return _Class;
@@ -61,12 +71,17 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
         return Object.freeze(this.rect);
       }
     },
-    type: {
+    typeGroup: {
       finalize: function finalize() {
-        return this.type = typeGroup;
+        return this.type.push(_type.point);
       }
     }
   };
+
+  for (k in _spaceNode.methods) {
+    v = _spaceNode.methods[k];
+    pointFactory.method(k, v);
+  }
 
   for (k in _primative.methods) {
     v = _primative.methods[k];
@@ -79,6 +94,6 @@ define(['exports', '../factory/base', '../space/node', './primative'], function 
   }
 
   exports.methods = methods;
-  exports.type = typeGroup;
+  exports.type = _type.point;
   exports['default'] = pointFactory;
 });

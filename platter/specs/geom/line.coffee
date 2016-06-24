@@ -1,11 +1,13 @@
-`import Node from 'platter/space/node'`
 `import Line from 'platter/geom/line'`
 `import { methods as lineMethods } from 'platter/geom/line'`
+`import { line as tLine } from 'platter/geom/_type'`
 `import Primative from 'platter/geom/primative'`
+`import { methods as nodeMethods } from 'platter/space/node'`
 `import { methods as primativeMethods } from 'platter/geom/primative'`
-`import Vector, { ImmutableVector, SimpleVector } from 'platter/math/vector'`
+`import Vector, { ImmutableVector } from 'platter/math/vector'`
 `import q from 'platter/utils/tolerant-compare'`
 `import { compareAngleDegrees as qd } from 'platter/utils/angle-compare'`
+`import Rect from 'platter/math/rect'`
 
 describe 'platter: geometry, line', ->
   
@@ -14,6 +16,10 @@ describe 'platter: geometry, line', ->
     expect(instance instanceof Primative).toBe true
   
   describe 'methods', ->
+    
+    it 'should have methods provided by Node', ->
+      for k, v of nodeMethods
+        expect(Line.hasMethod(k, v)).toBe true
     
     it 'should have methods provided by Primative', ->
       for k, v of primativeMethods
@@ -64,12 +70,12 @@ describe 'platter: geometry, line', ->
         expect(test.pt1).toEqual {x: 10, y: 20}
         expect(test.pt2).toEqual {x: 8, y: 16}
       
-      it 'should convert the object literals into SimpleVectors', ->
+      it 'should convert the object literals into ImmutableVectors', ->
         test = {x: 2, y: 2, pt1: {x: 8, y: 16}, pt2: {x: 10, y: 20}}
         lineMethods.points.seal.call(test)
         
-        expect(test.pt1 instanceof SimpleVector).toBe true
-        expect(test.pt2 instanceof SimpleVector).toBe true
+        expect(test.pt1 instanceof ImmutableVector).toBe true
+        expect(test.pt2 instanceof ImmutableVector).toBe true
         
         expect(test.pt1.x).toBe 10
         expect(test.pt1.y).toBe 18
@@ -139,12 +145,13 @@ describe 'platter: geometry, line', ->
         lineMethods.rectangle.seal.call(test)
         expect(Object.isFrozen(test.rect)).toBe true
     
-    describe 'type', ->
+    describe 'typeGroup', ->
     
-      it 'should set a type of `line`', ->
-        test = {}
-        lineMethods.type.finalize.call(test)
-        expect(test.type).toBe Node.types['line']
+      it 'should set a type of `circle`', ->
+        test = { type: [] }
+        lineMethods.typeGroup.finalize.call(test)
+        
+        expect(test.type).toContain tLine
   
   describe 'implementation', ->
   
@@ -153,9 +160,36 @@ describe 'platter: geometry, line', ->
       matcher = toStringHelper('Platter.geom.Line#', '({x: 13, y: 20}, {x: 5, y: 9})')
       expect(instance.toString()).toMatch matcher
     
+    it 'should implement the `support` interface', ->
+      line = Line.define().from(2, 1).to(3, 4).create()
+      pt = line.support(Vector.create(), Vector.create(2, -1))
+      expect(pt.x).toBe 2
+      expect(pt.y).toBe 1
+      
+      pt = line.support(Vector.create(), Vector.create(2, 2))
+      expect(pt.x).toBe 3
+      expect(pt.y).toBe 4
+      
+      pt = line.support(Vector.create(), Vector.create(3, -1))
+      expect(pt.x).toBe 2.5
+      expect(pt.y).toBe 2.5
+    
+    it 'should implement the `centerOf()` interface', ->
+      line = Line.define().from(2, 1).to(3, 4).create()
+      pt = line.centerOf(Vector.create())
+      
+      expect(pt.x).toBe 2.5
+      expect(pt.y).toBe 2.5
+    
+    xit 'should implement the `makeProxy()` interface', ->
+      line = Line.define().from(2, 1).to(3, 4).create()
+      fn = -> proxy = line.makeProxy()
+      
+      expect(fn).not.toThrow()
+    
     it 'should implement the `toRect()` interface', ->
       line = Line.define().from(13, 20).to(5, 9).create()
-      rect = line.toRect()
+      rect = line.toRect(Rect.create())
       expectation = { x: 5, y: 9, width: 8, height: 11 }
       
       for k of expectation
@@ -167,7 +201,7 @@ describe 'platter: geometry, line', ->
       
       props1 = ['x', 'y']
       props2 = ['point1', 'point2']
-      fns = ((-> line[prop] = new SimpleVector(0, 0)) for prop in props2)
+      fns = ((-> line[prop] = new ImmutableVector(0, 0)) for prop in props2)
       
       expect(fn).toThrow() for fn in fns
       for x in props2

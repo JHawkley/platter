@@ -52,14 +52,19 @@ class Factory
               _stage = 2
             when -1
               throw new Error('cannot create more than one when unsealed')
-          obj = pool.pop() ? Object.create ctor.prototype,
-            release: value: ->
-              @destroy?()
-              @_data = null
-              pool.push this
-            id: value: nextId++
-          obj._data = _definition
-          ctor.apply(obj, arguments)
+          obj = null
+          if (obj = pool.pop())?
+            obj._data = _definition
+          else
+            obj = Object.create ctor.prototype,
+              release: value: ->
+                @destroy?()
+                @_data = null
+                pool.push this
+              id: value: nextId++
+            ctor.apply(obj)
+            obj._data = _definition
+          ctor.init?(obj, arguments...)
           return obj
       
       init.call(generator) for k, init of initializers

@@ -1,31 +1,37 @@
 `import Factory from '../factory/base'`
-`import Group, { type as fGroup } from './group'`
+`import Group from './group'`
+`import { methods as nodeMethods } from './node'`
 `import { methods as groupMethods } from './group'`
-`import Node from './node'`
-`import Vector from '../math/vector'`
-`import { type as fPoint } from '../geom/point'`
-`import { type as fCircle } from '../geom/circle'`
-`import { type as fAABB } from '../geom/aabb'`
+`import { kinematic as typeGroup } from './_type'`
+`import VectorInterpolation from '../math/vector-interpolation'`
+`import { group as tGroup } from './_type'`
+`import { point as tPoint } from '../geom/_type'`
+`import { circle as tCircle } from '../geom/_type'`
+`import { aabb as tAABB } from '../geom/_type'`
 
-typeGroup = Node.addType 'kinematic'
-allowedNodeTypes = (fPoint | fCircle | fAABB)
+allowedTypes = [tPoint, tCircle, tAABB]
 
 kinematicFactory = new Factory class extends Group.ctor
+  
+  @init: (instance, x, y) ->
+    super(instance, x, y)
+    # These will be reflected by the primative proxies.
+    instance.flipX = false
+    instance.flipY = false
+    # Affect collision detection behavior.
+    instance.floating = true
+    instance.minClimableGrade = -45 * (Math.PI / 180)
+    instance.maxClimableGrade = 45 * (Math.PI / 180)
   
   # The primary colliding body.  When `floating` is `false`, this
   # primative will collide with lines (it would consider to be ground)
   # and circles along its center-line (more-or-less; it's complicated).
   Object.defineProperty @prototype, 'body',
-    get: -> @_instanceData.body
+    get: -> @_instanceData.undynesBody
     set: (val) -> @setBody(val)
   
   Object.defineProperty @prototype, 'delta',
     get: -> @_instanceData.delta
-    set: (val) ->
-      { x, y } = val
-      if not(x? and y?)
-        throw new Error('not a proper vector with `x` and `y` properties')
-      @_instanceData.delta.setXY(x, y)
   
   # Alias to `flipX`
   Object.defineProperty @prototype, 'mirror',
@@ -39,23 +45,13 @@ kinematicFactory = new Factory class extends Group.ctor
   
   constructor: (x, y) ->
     super(x, y)
-    _instanceData = @_instanceData ?= { body: null, delta: null }
-    _instanceData.body = null
-    _instanceData.delta = Vector.create(0, 0)
-    # These will be reflected by the primative proxies.
-    @flipX = false
-    @flipY = false
-    # Affect collision detection behavior.
-    @floating = true
-    @minClimableGrade = -45 * (Math.PI / 180)
-    @maxClimableGrade = 45 * (Math.PI / 180)
+    @_instanceData = { undynesBody: null, delta: new VectorInterpolation() }
   
   destroy: ->
     super()
     _instanceData = @_instanceData
-    _instanceData.delta.release()
-    _instanceData.body = null
-    _instanceData.delta = null
+    _instanceData.delta.clear()
+    _instanceData.undynesBody = null
   
   # Sets the `body` property.  This function is handy as it can be
   # chained: `Kinematic.create().adopt(body).setBody(body)`
@@ -63,15 +59,15 @@ kinematicFactory = new Factory class extends Group.ctor
     if body?
       if body.parent isnt this
         throw new Error('a body must be a child of the kinematic')
-      if !(body.type & fAABB)
+      if not tAABB.test(body.type)
         throw new Error('only AABBs may be a body')
-    @_instanceData.body = body
+    @_instanceData.undynesBody = body
     return this
   
   # Unsets the body if it is orphaned.
-  orphanObj: (obj) ->
+  orphan: (obj) ->
     super(obj)
-    @_instanceData.body = null if obj is @_instanceData.body
+    @_instanceData.undynesBody = null if obj is @_instanceData.undynesBody
     return this
   
   toString: -> "Platter.space.Kinematic##{@id}({x: #{@x}, y: #{@y}})"
@@ -80,18 +76,20 @@ methods =
   # Sets the filter to specifically allow points, circles, and AABBs
   # and exclude groups.
   filter:
-    init: -> @filter = { allowed: allowedNodeTypes, excluded: fGroup }
-    seal: -> Object.freeze(@filter)
+    init: -> @filter = { included: allowedTypes[..], excluded: [tGroup] }
+    seal: -> groupMethods.filter.seal.call(this)
   # Provides the node type.
-  type:
+  typeGroup:
     finalize: ->
-      groupMethods.type.finalize.call(this)
-      @type |= typeGroup
+      groupMethods.typeGroup.finalize.call(this)
+      @type.push typeGroup
 
-for k, v of groupMethods when k not in ['filter', 'allow', 'type']
+for k, v of nodeMethods
+  kinematicFactory.method(k, v)
+for k, v of groupMethods when k not in ['filter', 'include', 'typeGroup']
   kinematicFactory.method(k, v)
 for k, v of methods
   kinematicFactory.method(k, v)
 
-`export { methods, typeGroup as type }`
+`export { methods }`
 `export default kinematicFactory`

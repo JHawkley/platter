@@ -1,4 +1,4 @@
-define(['exports', '../factory/base', '../space/node', './primative', './chain-link', '../utils/find-bounds', '../utils/es6'], function (exports, _factoryBase, _spaceNode, _primative, _chainLink, _utilsFindBounds, _utilsEs6) {
+define(['exports', '../factory/base', '../callback/type', './primative', '../space/node', './chain-link', '../utils/find-bounds', '../utils/es6', '../utils/array', './_type'], function (exports, _factoryBase, _callbackType, _primative, _spaceNode, _chainLink, _utilsFindBounds, _utilsEs6, _utilsArray, _type) {
   'use strict';
 
   Object.defineProperty(exports, '__esModule', {
@@ -9,7 +9,7 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
 
   var _Factory = _interopRequireDefault(_factoryBase);
 
-  var _Node = _interopRequireDefault(_spaceNode);
+  var _CallbackType = _interopRequireDefault(_callbackType);
 
   var _Primative = _interopRequireDefault(_primative);
 
@@ -19,10 +19,8 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
 
   var chainFactory,
       comparePoints,
-      isArray,
       k,
       methods,
-      typeGroup,
       v,
       extend = function extend(child, parent) {
     for (var key in parent) {
@@ -33,10 +31,6 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
   },
       hasProp = ({}).hasOwnProperty,
       slice = [].slice;
-
-  isArray = function (obj) {
-    return Object.prototype.toString.call(obj) === '[object Array]';
-  };
 
   comparePoints = function (pt1, pt2) {
     switch (false) {
@@ -51,10 +45,43 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
     }
   };
 
-  exports.type = typeGroup = _Node['default'].addType('chain');
-
   chainFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
+
+    _Class.init = function (instance) {
+      var curLink, firstLink, gen, instanceData, j, len, links, nextHash, prevHash, prevLink, ref1;
+      nextHash = {};
+      prevHash = {};
+      links = [];
+      prevLink = null;
+      curLink = null;
+      ref1 = instance._data.links;
+      for (j = 0, len = ref1.length; j < len; j++) {
+        gen = ref1[j];
+        curLink = gen.create(instance);
+        if (prevLink != null) {
+          prevHash[curLink.id] = prevLink;
+          nextHash[prevLink.id] = curLink;
+        }
+        links.push(curLink);
+        prevLink = curLink;
+      }
+      if (instance._data.closed) {
+        firstLink = links[0];
+        prevHash[firstLink.id] = curLink;
+        nextHash[curLink.id] = firstLink;
+      }
+      Object.freeze(prevHash);
+      Object.freeze(nextHash);
+      Object.freeze(links);
+      instanceData = {
+        links: links,
+        prevHash: prevHash,
+        nextHash: nextHash
+      };
+      Object.freeze(instanceData);
+      return instance._instanceData = instanceData;
+    };
 
     Object.defineProperty(_Class.prototype, 'x', {
       get: function get() {
@@ -75,38 +102,7 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
     });
 
     function _Class() {
-      var curLink, firstLink, gen, j, len, links, nextHash, prevHash, prevLink, ref1;
       _Class.__super__.constructor.call(this);
-      nextHash = {};
-      prevHash = {};
-      links = [];
-      prevLink = null;
-      curLink = null;
-      ref1 = this._data.links;
-      for (j = 0, len = ref1.length; j < len; j++) {
-        gen = ref1[j];
-        curLink = gen.create(this);
-        if (prevLink != null) {
-          prevHash[curLink.id] = prevLink;
-          nextHash[prevLink.id] = curLink;
-        }
-        links.push(curLink);
-        prevLink = curLink;
-      }
-      if (this._data.closed) {
-        firstLink = links[0];
-        prevHash[firstLink.id] = curLink;
-        nextHash[curLink.id] = firstLink;
-      }
-      Object.freeze(prevHash);
-      Object.freeze(nextHash);
-      Object.freeze(links);
-      this._instanceData = {
-        links: links,
-        prevHash: prevHash,
-        nextHash: nextHash
-      };
-      Object.freeze(this._instanceData);
     }
 
     _Class.prototype.destroy = function () {
@@ -118,6 +114,10 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
       }
       this._instanceData = null;
       return _Class.__super__.destroy.call(this);
+    };
+
+    _Class.prototype.support = function () {
+      throw new Error('not supported');
     };
 
     _Class.prototype[_utilsEs6.iteratorSymbol] = function () {
@@ -149,12 +149,13 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
       return this._instanceData.prevHash[ref.id];
     };
 
-    _Class.prototype.toRect = function () {
-      return this._data.rect;
+    _Class.prototype.toRect = function (out) {
+      out.set(this._data.rect);
+      return out;
     };
 
     _Class.prototype.toString = function () {
-      return 'Platter.geom.Chain#' + this.id + '({links.length: ' + this.links.length + '})';
+      return "Platter.geom.Chain#" + this.id + "({links.length: " + this.links.length + "})";
     };
 
     return _Class;
@@ -170,7 +171,7 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
         if (this.closed) {
           throw new Error('cannot add points to a closed shape');
         }
-        points = isArray(arguments[0]) ? arguments[0] : arguments;
+        points = (0, _utilsArray.isArray)(arguments[0]) ? arguments[0] : arguments;
         for (j = 0, len = points.length; j < len; j++) {
           point = points[j];
           this.points.push(point);
@@ -289,11 +290,12 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
         for (ref1 > 0 ? (j = 0, len = ref2.length) : j = ref2.length - 1; ref1 > 0 ? j < len : j >= 0; j += ref1) {
           curPoint = ref2[j];
           if (lastPoint != null) {
-            generator = _ChainLink['default'].define().translate(offX, offY).points(lastPoint, curPoint).group(this.filter.group).mask(this.filter.mask).seal();
+            generator = _ChainLink['default'].define().translate(offX, offY).points(lastPoint, curPoint).type(this.chainType).seal();
             links.push(generator);
           }
           lastPoint = curPoint;
         }
+        delete this.chainType;
         return Object.freeze(links);
       }
     },
@@ -323,11 +325,36 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
       }
     },
     type: {
+      init: function init() {
+        _spaceNode.methods.type.init.call(this);
+        return this.chainType = [];
+      },
+      apply: function apply(cbType) {
+        var ref1;
+        _spaceNode.methods.type.apply.call(this, cbType);
+        if ((0, _utilsArray.isArray)(cbType)) {
+          return (ref1 = this.chainType).push.apply(ref1, cbType);
+        } else {
+          return this.chainType.push(cbType);
+        }
+      },
+      seal: function seal() {
+        return _spaceNode.methods.type.seal.call(this);
+      }
+    },
+    typeGroup: {
       finalize: function finalize() {
-        return this.type = typeGroup;
+        return this.type.push(_type.chain);
       }
     }
   };
+
+  for (k in _spaceNode.methods) {
+    v = _spaceNode.methods[k];
+    if (k !== 'type') {
+      chainFactory.method(k, v);
+    }
+  }
 
   for (k in _primative.methods) {
     v = _primative.methods[k];
@@ -340,6 +367,6 @@ define(['exports', '../factory/base', '../space/node', './primative', './chain-l
   }
 
   exports.methods = methods;
-  exports.type = typeGroup;
+  exports.type = _type.chain;
   exports['default'] = chainFactory;
 });

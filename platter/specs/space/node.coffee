@@ -1,5 +1,11 @@
 `import Factory from 'platter/factory/base'`
-`import _Node from 'platter/space/node'`
+`import _Node, { methods as nodeMethods } from 'platter/space/node'`
+`import CallbackType from 'platter/callback/type'`
+`import CallbackMetatype from 'platter/callback/meta-type'`
+
+cbTest1 = CallbackType.add('test-type-1')
+cbTest2 = CallbackType.add('test-type-2')
+cbTest3 = CallbackType.add('test-type-3')
 
 Node = new Factory(_Node)
 
@@ -57,6 +63,39 @@ describe 'platter: space, node', ->
   node = null
   
   beforeEach -> node = Node.create()
+  
+  describe 'methods', ->
+    
+    describe 'type', ->
+      
+      it 'should initialize the type array', ->
+        test = {}
+        nodeMethods.type.init.call(test)
+        
+        expect(test.type).toEqual []
+      
+      it 'should provide a means to add a type', ->
+        test = { type: [] }
+        
+        nodeMethods.type.apply.call(test, cbTest1)
+        
+        expect(test.type).toEqual [cbTest1]
+      
+      it 'should provide a means to add several types', ->
+        test = { type: [] }
+        
+        nodeMethods.type.apply.call(test, [cbTest1, cbTest2, cbTest3])
+        
+        expect(test.type).toEqual [cbTest1, cbTest2, cbTest3]
+      
+      it 'should seal the types by creating a meta-type', ->
+        test = { type: [ cbTest1, cbTest2, cbTest3 ] }
+        sType = cbTest1.value | cbTest2.value | cbTest3.value
+        
+        nodeMethods.type.seal.call(test)
+        
+        expect(test.type instanceof CallbackMetatype).toBe true
+        expect(test.type.value).toBe sType
   
   it 'should override `toString()`', ->
     matcher = toStringHelper('Platter.space.Node#', '({x: 40, y: 10})')

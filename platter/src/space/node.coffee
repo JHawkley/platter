@@ -1,5 +1,11 @@
 `import Matrix from '../math/matrix'`
+`import CallbackType from '../callback/type'`
+`import CallbackMetatype from '../callback/meta-type'`
+`import { isArray } from '../utils/array'`
 `import lowestCommonAncestor from '../utils/lowest-common-ancestor'`
+
+# Null callback type; has a flag of 0x00000000.
+tNull = CallbackType.get('null')
 
 # Working matrix.
 wm = new Matrix()
@@ -14,16 +20,11 @@ recurse = (node, stopAt, fn) ->
     return fn(node)
   return
 
-curTypeShift = 0
-
 class Node
 
-  @types: {}
-  
-  @addType: (type) ->
-    Node.types[type] ?= (1 << (curTypeShift++))
-    throw new Error('too many node types') if curTypeShift > 30
-    return Node.types[type]
+  @init: (instance, x, y) ->
+    instance.x = x
+    instance.y = y
 
   # Gets of sets the parent of this node.
   # NOTE: `_parent` is set by `wasAdoptedBy()` when its new parent
@@ -36,9 +37,9 @@ class Node
       val?.adoptObj(this)
   
   Object.defineProperty @prototype, 'type',
-    get: -> @_data.type ? 0x00000000
+    get: -> @_data.type ? tNull
 
-  constructor: (@x, @y) ->
+  constructor: ->
     @_parent = null
   
   destroy: ->
@@ -156,4 +157,17 @@ class Node
   
   toString: -> "Platter.space.Node##{@id}({x: #{@x}, y: #{@y}})"
 
+methods =
+  type:
+    init: -> @type = []
+    apply: (cbType) ->
+      if isArray(cbType)
+        @type.push(cbType...)
+      else
+        @type.push cbType
+    seal: ->
+      type = @type
+      @type = if type.length > 0 then new CallbackMetatype(type) else null
+
+`export { methods }`
 `export default Node`

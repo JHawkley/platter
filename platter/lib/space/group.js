@@ -1,4 +1,4 @@
-define(['exports', '../factory/base', './node', '../utils/find-bounds', '../utils/es6'], function (exports, _factoryBase, _node, _utilsFindBounds, _utilsEs6) {
+define(['exports', '../factory/base', './node', '../callback/type', './_type', '../callback/options', '../math/rect', '../utils/es6', '../utils/array'], function (exports, _factoryBase, _node, _callbackType, _type, _callbackOptions, _mathRect, _utilsEs6, _utilsArray) {
   'use strict';
 
   Object.defineProperty(exports, '__esModule', {
@@ -11,13 +11,17 @@ define(['exports', '../factory/base', './node', '../utils/find-bounds', '../util
 
   var _Node = _interopRequireDefault(_node);
 
-  var _findBounds = _interopRequireDefault(_utilsFindBounds);
+  var _CallbackType = _interopRequireDefault(_callbackType);
+
+  var _CallbackOptions = _interopRequireDefault(_callbackOptions);
+
+  var _Rect = _interopRequireDefault(_mathRect);
 
   var groupFactory,
       k,
       methods,
-      typeGroup,
       v,
+      workingRect,
       extend = function extend(child, parent) {
     for (var key in parent) {
       if (hasProp.call(parent, key)) child[key] = parent[key];
@@ -27,10 +31,14 @@ define(['exports', '../factory/base', './node', '../utils/find-bounds', '../util
   },
       hasProp = ({}).hasOwnProperty;
 
-  exports.type = typeGroup = _Node['default'].addType('group');
+  workingRect = _Rect['default'].create();
 
   groupFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
+
+    _Class.init = function (instance, x, y) {
+      return _Class.__super__.constructor.init.call(this, instance, x, y);
+    };
 
     Object.defineProperty(_Class.prototype, 'filter', {
       get: function get() {
@@ -38,9 +46,8 @@ define(['exports', '../factory/base', './node', '../utils/find-bounds', '../util
       }
     });
 
-    function _Class(x, y) {
-      _Class.__super__.constructor.call(this, x, y);
-      this._rect = {};
+    function _Class() {
+      _Class.__super__.constructor.call(this);
       this.children = [];
     }
 
@@ -97,24 +104,15 @@ define(['exports', '../factory/base', './node', '../utils/find-bounds', '../util
       };
     };
 
-    _Class.prototype.adopt = function () {
-      var i, len, obj;
-      for (i = 0, len = arguments.length; i < len; i++) {
-        obj = arguments[i];
-        this.adoptObj(obj);
-      }
-      return this;
-    };
-
-    _Class.prototype.adoptObj = function (obj) {
+    _Class.prototype.adopt = function (obj) {
       var type;
       if (obj === this) {
         throw new Error('a group may not adopt itself');
       }
       type = obj.type;
-      if (!!(this.filter.allowed & type) && !(this.filter.excluded & type)) {
+      if (this.filter.test(obj.type)) {
         this.children.push(obj);
-        if (typeof obj.wasAdoptedBy === 'function') {
+        if (typeof obj.wasAdoptedBy === "function") {
           obj.wasAdoptedBy(this);
         }
       } else {
@@ -123,51 +121,66 @@ define(['exports', '../factory/base', './node', '../utils/find-bounds', '../util
       return this;
     };
 
-    _Class.prototype.orphan = function () {
+    _Class.prototype.adoptObjs = function () {
       var i, len, obj;
       for (i = 0, len = arguments.length; i < len; i++) {
         obj = arguments[i];
-        this.orphanObj(obj);
+        this.adopt(obj);
       }
       return this;
     };
 
-    _Class.prototype.orphanObj = function (obj) {
+    _Class.prototype.orphan = function (obj) {
       var idx;
       idx = this.children.indexOf(obj);
       if (idx === -1) {
         return;
       }
       this.children.splice(idx, 1);
-      if (typeof obj.wasOrphanedBy === 'function') {
+      if (typeof obj.wasOrphanedBy === "function") {
         obj.wasOrphanedBy(this);
       }
       return this;
     };
 
-    _Class.prototype.toRect = function () {
-      var child, rectOut, rects;
-      rectOut = this._rect;
-      rects = (function () {
-        var i, len, ref, ref1, ref2, results;
-        ref = this.children;
-        results = [];
-        for (i = 0, len = ref.length; i < len; i++) {
-          child = ref[i];
-          if (((ref1 = child.children) != null ? ref1.length : void 0) !== 0) {
-            results.push((ref2 = typeof child.toRect === 'function' ? child.toRect() : void 0) != null ? ref2 : child);
-          }
+    _Class.prototype.orphanObjs = function () {
+      var i, len, obj;
+      for (i = 0, len = arguments.length; i < len; i++) {
+        obj = arguments[i];
+        this.orphan(obj);
+      }
+      return this;
+    };
+
+    _Class.prototype.toRect = function (out) {
+      var bottom, child, i, left, len, ref, ref1, right, top, wr;
+      top = left = Number.POSITIVE_INFINITY;
+      bottom = right = Number.NEGATIVE_INFINITY;
+      ref = this.children;
+      for (i = 0, len = ref.length; i < len; i++) {
+        child = ref[i];
+        if (!(((ref1 = child.children) != null ? ref1.length : void 0) !== 0)) {
+          continue;
         }
-        return results;
-      }).call(this);
-      (0, _findBounds['default'])(rects, rectOut);
-      rectOut.x += this.x;
-      rectOut.y += this.y;
-      return rectOut;
+        wr = child.toRect(workingRect);
+        top = Math.min(top, wr.top);
+        left = Math.min(left, wr.left);
+        bottom = Math.max(bottom, wr.bottom);
+        right = Math.max(right, wr.right);
+      }
+      if (wr == null) {
+        out.setProps(this.x, this.y, 0, 0);
+      } else {
+        out.x = left + this.x;
+        out.y = top + this.y;
+        out.width = right - left;
+        out.height = bottom - top;
+      }
+      return out;
     };
 
     _Class.prototype.toString = function () {
-      return 'Platter.space.Group#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
+      return "Platter.space.Group#" + this.id + "({x: " + this.x + ", y: " + this.y + "})";
     };
 
     return _Class;
@@ -177,35 +190,52 @@ define(['exports', '../factory/base', './node', '../utils/find-bounds', '../util
     filter: {
       init: function init() {
         return this.filter = {
-          allowed: 0,
-          excluded: 0
+          included: [],
+          excluded: []
         };
       },
       seal: function seal() {
-        return Object.freeze(this.filter);
+        var filter;
+        filter = this.filter;
+        return this.filter = new _CallbackOptions['default'](filter.included).excluding(filter.excluded).seal();
       }
     },
-    allow: {
-      apply: function apply(flags) {
-        return this.filter.allowed |= flags;
+    include: {
+      apply: function apply(cbType) {
+        var ref;
+        if ((0, _utilsArray.isArray)(cbType)) {
+          return (ref = this.filter.included).push.apply(ref, cbType);
+        } else {
+          return this.filter.included.push(cbType);
+        }
       },
       finalize: function finalize() {
-        if (this.filter.allowed === 0) {
-          return this.filter.allowed = ~0 >>> 0;
+        if (this.filter.included.length === 0) {
+          return this.filter.included.push(_CallbackType['default'].get('all'));
         }
       }
     },
     exclude: {
-      apply: function apply(flags) {
-        return this.filter.excluded |= flags;
+      apply: function apply(cbType) {
+        var ref;
+        if ((0, _utilsArray.isArray)(cbType)) {
+          return (ref = this.filter.excluded).push.apply(ref, cbType);
+        } else {
+          return this.filter.excluded.push(cbType);
+        }
       }
     },
-    type: {
+    typeGroup: {
       finalize: function finalize() {
-        return this.type = typeGroup;
+        return this.type.push(_type.group);
       }
     }
   };
+
+  for (k in _node.methods) {
+    v = _node.methods[k];
+    groupFactory.method(k, v);
+  }
 
   for (k in methods) {
     v = methods[k];
@@ -213,6 +243,5 @@ define(['exports', '../factory/base', './node', '../utils/find-bounds', '../util
   }
 
   exports.methods = methods;
-  exports.type = typeGroup;
   exports['default'] = groupFactory;
 });

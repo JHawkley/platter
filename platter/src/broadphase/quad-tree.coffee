@@ -2,6 +2,10 @@
 # Distributed under MIT License.
 # https://github.com/timohausmann/quadtree-js
 
+`import Rect from '../math/rect'`
+
+workingRect = Rect.create()
+
 quadNone = 0
 quadTL = (1 << 0)
 quadTR = (1 << 1)
@@ -13,36 +17,30 @@ pool = []
 class QuadTree
   @FLAGS: { quadNone, quadTL, quadTR, quadBL, quadBR }
 
-  @create: ->
-    instance = pool.pop()
-    if instance? then return QuadTree.init.apply(instance, arguments)
-    else return new QuadTree(arguments...)
+  @create: (x, y, w, h, maxObjects, maxLevels, level) ->
+    instance = pool.pop() ? new QuadTree()
+    return QuadTree.init(instance, x, y, w, h, maxObjects, maxLevels, level)
   
   @reclaim: (instance) -> pool.push instance
   
-  @init: (x, y, w, h, maxObjects, maxLevels, level) ->
-    @maxObjects = maxObjects
-    @maxLevels = maxLevels
-    @level = level
-    @bounds.x = x
-    @bounds.y = y
-    @bounds.width = w
-    @bounds.height = h
-    return this
-
-  # Public constructor has an arguments list of:
-  #   (bounds, maxObjects = 10, maxLevels = 4)
+  @init: (instance, x, y, w, h, maxObjects, maxLevels, level) ->
+    if typeof x isnt 'number'
+      # Assume `x` is a bounds object.
+      maxObjects = y
+      maxLevels = w
+      level = h
+      { x, y, width: w, height: h } = x
+    
+    instance.maxObjects = maxObjects ? 10
+    instance.maxLevels = maxLevels ? 4
+    instance.level = level ? 0
+    instance.bounds.setProps(x, y, w, h)
+    return instance
+  
   constructor: ->
     @objects = []
     @nodes = null
-    @bounds = {}
-    if arguments.length is 7
-      QuadTree.init.apply(this, arguments)
-    else
-      [bounds, maxObjects, maxLevels] = arguments
-      {x, y, width: w, height: h} = (bounds.toRect?() ? bounds)
-      QuadTree.init.call(this, x, y, w, h, maxObjects ? 10, maxLevels ? 4, 0)
-    
+    @bounds = Rect.create()
   
   # Splits the quad-tree into four child nodes, one for each quadrant.
   split: ->
@@ -67,7 +65,7 @@ class QuadTree
   
   # Gets a set of flags indicating which child nodes can contain the object.
   getQuads: (object) ->
-    rect = object.toRect?() ? object
+    rect = object.toRect?(workingRect) ? object
     quads = quadNone
     vm = @bounds.x + (@bounds.width / 2)
     hm = @bounds.y + (@bounds.height / 2)
@@ -119,10 +117,13 @@ class QuadTree
     
     return Array::concat.call(arrs...)
   
+  release: ->
+    @clear()
+    QuadTree.reclaim(this)
+  
   # Clears the quad-tree and resets it to use the provided bounds.
   reset: (bounds) ->
     @clear()
-    bounds = bounds.toRect?() ? bounds
     @bounds.x = bounds.x
     @bounds.y = bounds.y
     @bounds.width = bounds.width
@@ -132,8 +133,7 @@ class QuadTree
   clear: ->
     @objects = []
     if @nodes? then for k, node of @nodes 
-      node.clear()
-      QuadTree.reclaim(node)
+      node.release()
     @nodes = null
   
   # Creates a string representation of the quad-tree, including all

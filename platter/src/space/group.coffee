@@ -1,19 +1,23 @@
 `import Factory from '../factory/base'`
-`import Node from './node'`
-`import findBounds from '../utils/find-bounds'`
+`import Node, { methods as nodeMethods } from './node'`
+`import CallbackType from '../callback/type'`
+`import { group as typeGroup } from './_type'`
+`import CallbackOptions from '../callback/options'`
+`import Rect from '../math/rect'`
 `import { iteratorSymbol, isIterable } from '../utils/es6'`
+`import { isArray } from '../utils/array'`
 
-typeGroup = Node.addType 'group'
+workingRect = Rect.create()
 
 groupFactory = new Factory class extends Node
+
+  @init: (instance, x, y) -> super(instance, x, y)
 
   Object.defineProperty @prototype, 'filter',
     get: -> @_data.filter
 
-  constructor: (x, y) ->
-    super(x, y)
-    # Reusable object for `toRect()`.
-    @_rect = {}
+  constructor: ->
+    super()
     @children = []
   
   destroy: ->
@@ -53,48 +57,58 @@ groupFactory = new Factory class extends Node
             return result
     }
   
-  # Adopts one or more nodes as children.
-  adopt: ->
-    @adoptObj(obj) for obj in arguments
-    return this
-  
   # Adopts a single node as a child.
-  adoptObj: (obj) ->
+  adopt: (obj) ->
     if obj is this
       throw new Error('a group may not adopt itself')
     type = obj.type
-    if !!(@filter.allowed & type) and !(@filter.excluded & type)
+    if @filter.test(obj.type)
       @children.push obj
       obj.wasAdoptedBy?(this)
     else
       throw new Error('object is not a permitted type for this group')
     return this
   
-  # Orphans one or more nodes.
-  orphan: ->
-    @orphanObj(obj) for obj in arguments
+  # Adopts one or more nodes as children.
+  adoptObjs: ->
+    @adopt(obj) for obj in arguments
     return this
   
   # Orphans a node.  This function does nothing if the
   # node is already not a child of this group instance.
-  orphanObj: (obj) ->
+  orphan: (obj) ->
     idx = @children.indexOf obj
     return if idx is -1
     @children.splice(idx, 1)
     obj.wasOrphanedBy?(this)
     return this
   
+  # Orphans one or more nodes.
+  orphanObjs: ->
+    @orphan(obj) for obj in arguments
+    return this
+  
   # Converts the group into a rectangle that represents the bounds of
-  # the group's children.
-  toRect: ->
-    rectOut = @_rect
-    rects = for child in @children when child.children?.length isnt 0
-      child.toRect?() ? child
-      
-    findBounds(rects, rectOut)
-    rectOut.x += @x
-    rectOut.y += @y
-    return rectOut
+  # the group's children and sets it to `out`.
+  toRect: (out) ->
+    top = left = Number.POSITIVE_INFINITY
+    bottom = right = Number.NEGATIVE_INFINITY
+    
+    for child in @children when child.children?.length isnt 0
+      wr = child.toRect(workingRect)
+      top = Math.min(top, wr.top)
+      left = Math.min(left, wr.left)
+      bottom = Math.max(bottom, wr.bottom)
+      right = Math.max(right, wr.right)
+    
+    if not wr?
+      out.setProps(@x, @y, 0, 0)
+    else
+      out.x = left + @x; out.y = top + @y
+      out.width = right - left
+      out.height = bottom - top
+    
+    return out
   
   toString: -> "Platter.space.Group##{@id}({x: #{@x}, y: #{@y}})"
 
@@ -105,25 +119,36 @@ methods =
   # This has no relation to the primative `mask` and `group`
   # filters, which have to do with what they may collide with.
   filter:
-    init: -> @filter = { allowed: 0x00000000, excluded: 0x00000000 }
-    seal: -> Object.freeze(@filter)
+    init: -> @filter = { included: [], excluded: [] }
+    seal: ->
+      filter = @filter
+      @filter = new CallbackOptions(filter.included).excluding(filter.excluded).seal()
   # Allows a specific node type to be added to the group.
   # If never applied, the finalizer will default to all types.
-  allow:
-    apply: (flags) ->
-      @filter.allowed |= flags
+  include:
+    apply: (cbType) ->
+      if isArray(cbType)
+        @filter.included.push(cbType...)
+      else
+        @filter.included.push cbType
     finalize: ->
-      if @filter.allowed is 0x00000000
-        @filter.allowed = (~0x00000000 >>> 0)
+      if @filter.included.length is 0
+        @filter.included.push CallbackType.get('all')
   # Prevents a specific node type from being added to the group.
   exclude:
-    apply: (flags) -> @filter.excluded |= flags
+    apply: (cbType) ->
+      if isArray(cbType)
+        @filter.excluded.push(cbType...)
+      else
+        @filter.excluded.push cbType
   # Provides the node type.
-  type:
-    finalize: -> @type = typeGroup
+  typeGroup:
+    finalize: -> @type.push typeGroup
 
+for k, v of nodeMethods
+  groupFactory.method(k, v)
 for k, v of methods
   groupFactory.method(k, v)
 
-`export { methods, typeGroup as type }`
+`export { methods }`
 `export default groupFactory`

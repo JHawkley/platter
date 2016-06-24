@@ -1,11 +1,18 @@
 `import Factory from '../factory/base'`
-`import Node from '../space/node'`
-`import Line, {methods as lineMethods} from './line'`
+`import CallbackType from '../callback/type'`
+`import Line, { methods as lineMethods } from './line'`
+`import { line as lineType } from './_type'`
+`import { methods as nodeMethods } from '../space/node'`
 `import { methods as primativeMethods } from './primative'`
-
-typeGroup = Node.addType 'chain-link'
+`import { chainLink as type } from './_type'`
 
 chainLinkFactory = new Factory class extends Line.ctor
+  
+  @init: (instance, host) ->
+    if not host?
+      throw new Error('a chain-link requires a chain to host it')
+    instance._instanceData = { host }
+    Object.freeze(instance._instanceData)
   
   Object.defineProperty @prototype, 'host',
     get: -> @_instanceData.host
@@ -16,12 +23,7 @@ chainLinkFactory = new Factory class extends Line.ctor
   Object.defineProperty @prototype, 'next',
     get: -> @_instanceData.host.getNext(this)
   
-  constructor: (host) ->
-    super()
-    if not host?
-      throw new Error('a chain-link requires a chain to host it')
-    @_instanceData = { host }
-    Object.freeze(@_instanceData)
+  constructor: -> super()
   
   destroy: ->
     @_instanceData = null
@@ -37,17 +39,19 @@ chainLinkFactory = new Factory class extends Line.ctor
 
 methods =
   # Provides the node type.
-  type:
+  typeGroup:
     finalize: ->
-      lineMethods.type.finalize.call(this)
-      @type |= typeGroup
+      lineMethods.typeGroup.finalize.call(this)
+      @type.push type
 
+for k, v of nodeMethods
+  chainLinkFactory.method(k, v)
 for k, v of primativeMethods
   chainLinkFactory.method(k, v)
-for k, v of lineMethods when k isnt 'type'
+for k, v of lineMethods when k isnt 'typeGroup'
   chainLinkFactory.method(k, v)
 for k, v of methods
   chainLinkFactory.method(k, v)
 
-`export { methods, typeGroup as type }`
+`export { methods }`
 `export default chainLinkFactory`

@@ -1,29 +1,35 @@
 `import Factory from 'platter/factory/base'`
 `import World from 'platter/space/world'`
+`import { world as tWorld } from 'platter/space/_type'`
 `import { methods as worldMethods } from 'platter/space/world'`
 `import Group from 'platter/space/group'`
+`import { group as tGroup } from 'platter/space/_type'`
 `import { methods as groupMethods } from 'platter/space/group'`
-`import _Node from 'platter/space/node'`
+`import _Node, { methods as nodeMethods } from 'platter/space/node'`
+`import CallbackType from 'platter/callback/type'`
+`import CallbackOptions from 'platter/callback/options'`
+`import Rect from 'platter/math/rect'`
 
 Node = new Factory(_Node)
 
 class Box
-  typeGroup = _Node.addType 'test-box'
+  typeGroup = CallbackType.add 'test-box'
   constructor: (@x, @y, @width, @height) ->
     @type = typeGroup
-  toRect: -> this
+  toRect: (out) -> out.set(this); return out
   toString: -> "Box({x: #{@x}, y: #{@y}, width: #{@width}, height: #{@height}})"
 
 describe 'platter: space, world', ->
   
   describe 'methods', ->
     
-    fWorld = _Node.types['world']
-    fGroup = _Node.types['group']
+    it 'should have methods provided by Node', ->
+      for k, v of nodeMethods
+        expect(World.hasMethod(k, v)).toBe true
     
     it 'should have methods provided by Group, excluding some methods', ->
       for k, v of groupMethods
-        if k not in ['filter', 'allow', 'exclude', 'type']
+        if k not in ['filter', 'include', 'exclude', 'typeGroup']
           expect(World.hasMethod(k, v)).toBe true
         else
           expect(World.hasMethod(k, v)).toBe false
@@ -38,12 +44,15 @@ describe 'platter: space, world', ->
         test = {}
         worldMethods.filter.init.call(test)
         
-        expect(test.filter.allowed).toBe fGroup
-        expect(test.filter.excluded).toBe 0x00000000
+        expect(test.filter.included).toEqual [tGroup]
+        expect(test.filter.excluded).toEqual []
         
-        expect(Object.isFrozen(test.filter)).toBe false
         worldMethods.filter.seal.call(test)
-        expect(Object.isFrozen(test.filter)).toBe true
+        expect(test.filter instanceof CallbackOptions).toBe true
+        expect(test.filter.isSealed).toBe true
+        
+        expect(test.filter.included).toBe tGroup.value
+        expect(test.filter.excluded).toBe 0x00000000
     
     describe 'position', ->
       
@@ -102,12 +111,13 @@ describe 'platter: space, world', ->
         
         expect(test.height).toBe 16
     
-    describe 'type', ->
+    describe 'typeGroup', ->
       
       it 'should set a type of `group` and `world`', ->
-        test = {}
-        worldMethods.type.finalize.call(test)
-        expect(test.type).toBe(fGroup | fWorld)
+        test = { type: [] }
+        worldMethods.typeGroup.finalize.call(test)
+        expect(test.type).toContain tGroup
+        expect(test.type).toContain tWorld
   
   describe 'implementation', ->
   
@@ -118,8 +128,8 @@ describe 'platter: space, world', ->
       expect(world instanceof Group.ctor).toBe true
     
     it 'should have a nodeType of `world` & `group`', ->
-      grp = !!(world.type & _Node.types['group'])
-      wld = !!(world.type & _Node.types['world'])
+      grp = tGroup.test(world.type)
+      wld = tWorld.test(world.type)
       expect(grp and wld).toBe true
     
     it 'should override `toString()`', ->
@@ -172,7 +182,7 @@ describe 'platter: space, world', ->
       
       it 'should implement the `toRect()` interface', ->
         expected = { x: 0, y: 0, width: 4000, height: 240 }
-        rect = world.toRect()
+        rect = world.toRect(Rect.create())
         for prop, val of expected
           expect(rect[prop]).toBe val
       
@@ -180,10 +190,10 @@ describe 'platter: space, world', ->
         group = Group.create(8, 16)
         child1 = new Box(12, 6, 20, 10)
         child2 = new Box(82, 17, 8, 8)
-        group.adopt(child1, child2)
+        group.adoptObjs(child1, child2)
         expected = { x: 20, y: 22, width: 78, height: 19 }
         
         world.adopt(group)
-        rect = world.contentAsRect()
+        rect = world.contentAsRect(Rect.create())
         for prop, val of expected
           expect(rect[prop]).toBe val

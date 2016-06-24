@@ -1,12 +1,13 @@
 `import Factory from '../factory/base'`
-`import Node from '../space/node'`
+`import CallbackType from '../callback/type'`
 `import Primative from './primative'`
+`import { methods as nodeMethods } from '../space/node'`
 `import { methods as primativeMethods } from './primative'`
 `import ChainLink from './chain-link'`
 `import findBounds from '../utils/find-bounds'`
 `import { iteratorSymbol } from '../utils/es6'`
-
-isArray = (obj) -> Object::toString.call(obj) is '[object Array]'
+`import { isArray } from '../utils/array'`
+`import { chain as type } from './_type'`
 
 comparePoints = (pt1, pt2) -> return switch
   when not (pt1? and pt2?) then false
@@ -14,9 +15,34 @@ comparePoints = (pt1, pt2) -> return switch
   when pt1.y isnt pt2.y then false
   else true
 
-typeGroup = Node.addType 'chain'
-
 chainFactory = new Factory class extends Primative
+  
+  @init: (instance) ->
+    nextHash = {}
+    prevHash = {}
+    links = []
+    prevLink = null
+    curLink = null
+    for gen in instance._data.links
+      curLink = gen.create(instance)
+      if prevLink?
+        prevHash[curLink.id] = prevLink
+        nextHash[prevLink.id] = curLink
+      links.push curLink
+      prevLink = curLink
+    if instance._data.closed
+      firstLink = links[0]
+      prevHash[firstLink.id] = curLink
+      nextHash[curLink.id] = firstLink
+    
+    Object.freeze(prevHash)
+    Object.freeze(nextHash)
+    Object.freeze(links)
+    
+    instanceData = { links, prevHash, nextHash }
+    Object.freeze(instanceData)
+    
+    instance._instanceData = instanceData
   
   Object.defineProperty @prototype, 'x',
     get: -> @_data.rect.x
@@ -27,36 +53,17 @@ chainFactory = new Factory class extends Primative
   Object.defineProperty @prototype, 'links',
     get: -> @_instanceData.links
 
-  constructor: ->
-    super()
-    nextHash = {}
-    prevHash = {}
-    links = []
-    prevLink = null
-    curLink = null
-    for gen in @_data.links
-      curLink = gen.create(this)
-      if prevLink?
-        prevHash[curLink.id] = prevLink
-        nextHash[prevLink.id] = curLink
-      links.push curLink
-      prevLink = curLink
-    if @_data.closed
-      firstLink = links[0]
-      prevHash[firstLink.id] = curLink
-      nextHash[curLink.id] = firstLink
-    
-    Object.freeze(prevHash)
-    Object.freeze(nextHash)
-    Object.freeze(links)
-    
-    @_instanceData = { links, prevHash, nextHash }
-    Object.freeze(@_instanceData)
+  constructor: -> super()
   
   destroy: ->
     link.release() for link in @_instanceData.links
     @_instanceData = null
     super()
+  
+  # We can't use a support function on this type of shape, because
+  # it can be concave.  Instead, the chain-link support functions
+  # should be used instead, individually.
+  support: -> throw new Error('not supported')
   
   this.prototype[iteratorSymbol] = ->
     nextIndex = 0
@@ -77,7 +84,7 @@ chainFactory = new Factory class extends Primative
   
   getNext: (ref) -> @_instanceData.nextHash[ref.id]
   getPrev: (ref) -> @_instanceData.prevHash[ref.id]
-  toRect: -> @_data.rect
+  toRect: (out) -> out.set(@_data.rect); return out
   toString: -> "Platter.geom.Chain##{@id}({links.length: #{@links.length}})"
 
 methods =
@@ -161,11 +168,11 @@ methods =
           generator = ChainLink.define()
             .translate(offX, offY)
             .points(lastPoint, curPoint)
-            .group(@filter.group)
-            .mask(@filter.mask)
+            .type(@chainType)
             .seal()
           links.push generator
         lastPoint = curPoint
+      delete @chainType
       Object.freeze(links)
   # Provides an appropriate rectangle bounding box.
   rectangle:
@@ -184,14 +191,28 @@ methods =
         width: right - left
         height: bottom - top
     seal: -> Object.freeze(@rect)
-  # Provides the node type.
+  # Adds special capabilities for creating chain-links.
   type:
-    finalize: -> @type = typeGroup
+    init: ->
+      nodeMethods.type.init.call(this)
+      @chainType = []
+    apply: (cbType) ->
+      nodeMethods.type.apply.call(this, cbType)
+      if isArray(cbType)
+        @chainType.push(cbType...)
+      else
+        @chainType.push cbType
+    seal: -> nodeMethods.type.seal.call(this)
+  # Provides the node type.
+  typeGroup:
+    finalize: -> @type.push type
 
+for k, v of nodeMethods when k isnt 'type'
+  chainFactory.method(k, v)
 for k, v of primativeMethods
   chainFactory.method(k, v)
 for k, v of methods
   chainFactory.method(k, v)
 
-`export { methods, typeGroup as type }`
+`export { methods, type }`
 `export default chainFactory`

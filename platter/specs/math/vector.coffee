@@ -1,4 +1,4 @@
-`import { MutableVector, ImmutableVector, SimpleVector } from 'platter/math/vector'`
+`import { MutableVector, ImmutableVector } from 'platter/math/vector'`
 `import q from 'platter/utils/tolerant-compare'`
 
 toDegrees = (r) -> r * (180/Math.PI)
@@ -174,18 +174,62 @@ describe 'platter: math, immutable vector', ->
     expect(fn).toThrow() for fn in fns
     expect(vector.x).toBe 30
     expect(vector.y).toBe 20
-
-describe 'platter: math, simple vector', ->
   
-  it 'should override `toString()`', ->
-    str = 'Platter.math.SimpleVector({x: 30, y: 20})'
-    expect(new SimpleVector(30, 20).toString()).toBe str
-  
-  it 'should have immutable properties', ->
-    vector = new SimpleVector(30, 20)
-    props = ['x', 'y']
+  it 'should not mutate by setting properties', ->
+    vector = new ImmutableVector(30, 20)
+    op = { x: 4, y: 2 }
     
-    fns = ((-> vector[prop] = 1) for prop in props)
+    fns = [
+      -> vector.length = 1
+      -> vector.angle = 0
+    ]
     
     expect(fn).toThrow() for fn in fns
-    return
+    expect(vector.x).toBe 30
+    expect(vector.y).toBe 20
+
+  describe 'operators', ->
+    vec1 = null
+    vec2 = null
+    
+    beforeEach -> vec1 = ImmutableVector.create(4, 4)
+  
+    it 'should be able to add', ->
+      op = { x: 1, y: 3 }
+      
+      vec2 = vec1.add(op)
+      
+      expect(vec2).not.toBe vec1
+      expect(vec2.x).toBe 5
+      expect(vec2.y).toBe 7
+    
+    it 'should be able subtract', ->
+      op = { x: 1, y: 3 }
+      
+      vec2 = vec1.sub(op)
+      
+      expect(vec2).not.toBe vec1
+      expect(vec2.x).toBe 3
+      expect(vec2.y).toBe 1
+    
+    it 'should be able to scale (multiply)', ->
+      vec2 = vec1.mul(2.5)
+      
+      expect(vec2).not.toBe vec1
+      expect(vec2.x).toBe 10
+      expect(vec2.y).toBe 10
+    
+    it 'should be able to rotate', ->
+      vec2 = vec1.rotate(toRadians(90))
+      
+      expect(vec2).not.toBe vec1
+      expect(q(vec2.x, 4)).toBe true
+      expect(q(vec2.y, -4)).toBe true
+    
+    it 'should be able to normalize', ->
+      u = 0.7071067811865475
+      vec2 = vec1.unit()
+      
+      expect(vec2).not.toBe vec1
+      expect(q(vec2.x, u)).toBe true
+      expect(q(vec2.y, u)).toBe true

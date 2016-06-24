@@ -1,25 +1,33 @@
 `import Factory from 'platter/factory/base'`
 `import Kinematic from 'platter/space/kinematic'`
+`import { kinematic as tKinematic } from 'platter/space/_type'`
 `import { methods as kinematicMethods } from 'platter/space/kinematic'`
-`import _Node from 'platter/space/node'`
+`import _Node, {methods as nodeMethods } from 'platter/space/node'`
+`import CallbackType from 'platter/callback/type'`
+`import CallbackOptions from 'platter/callback/options'`
 `import Group from 'platter/space/group'`
+`import { group as tGroup } from 'platter/space/_type'`
 `import { methods as groupMethods } from 'platter/space/group'`
 
 `import Point from 'platter/geom/point'`
+`import { point as tPoint } from 'platter/geom/_type'`
 `import Circle from 'platter/geom/circle'`
+`import { circle as tCircle } from 'platter/geom/_type'`
 `import AABB from 'platter/geom/aabb'`
+`import { aabb as tAABB } from 'platter/geom/_type'`
 
 `import Line from 'platter/geom/line'`
 `import Chain from 'platter/geom/chain'`
 
-`import Vector, { SimpleVector, ImmutableVector } from 'platter/math/vector'`
+`import Vector, { ImmutableVector } from 'platter/math/vector'`
 
 Node = new Factory(_Node)
+tTestBox = CallbackType.add 'test-box'
+allowedPrimatives = [tPoint, tCircle, tAABB]
 
 class Box
-  typeGroup = _Node.addType 'test-box'
   constructor: (@x, @y, @width, @height) ->
-    @type = typeGroup
+    @type = tTestBox
   toRect: -> this
   toString: -> "Box({x: #{@x}, y: #{@y}, width: #{@width}, height: #{@height}})"
 
@@ -27,16 +35,13 @@ describe 'platter: space, kinematic', ->
   
   describe 'methods', ->
     
-    fKinematic = _Node.types['kinematic']
-    fGroup = _Node.types['group']
-    
-    fPoint = _Node.types['point']
-    fCircle = _Node.types['circle']
-    fAABB = _Node.types['aabb']
+    it 'should have methods provided by Node', ->
+      for k, v of nodeMethods
+        expect(Kinematic.hasMethod(k, v)).toBe true
     
     it 'should have methods provided by Group, excluding some methods', ->
       for k, v of groupMethods
-        if k not in ['filter', 'allow', 'type']
+        if k not in ['filter', 'include', 'typeGroup']
           expect(Kinematic.hasMethod(k, v)).toBe true
         else
           expect(Kinematic.hasMethod(k, v)).toBe false
@@ -51,19 +56,24 @@ describe 'platter: space, kinematic', ->
         test = {}
         kinematicMethods.filter.init.call(test)
         
-        expect(test.filter.allowed).toBe(fPoint | fCircle | fAABB)
-        expect(test.filter.excluded).toBe fGroup
+        for tPrim in allowedPrimatives
+          expect(test.filter.included).toContain tPrim
+        expect(test.filter.excluded).toContain tGroup
         
-        expect(Object.isFrozen(test.filter)).toBe false
         kinematicMethods.filter.seal.call(test)
-        expect(Object.isFrozen(test.filter)).toBe true
+        expect(test.filter instanceof CallbackOptions).toBe true
+        expect(test.filter.isSealed).toBe true
+        
+        expect(test.filter.included).toBe(tPoint.value | tCircle.value | tAABB.value)
+        expect(test.filter.excluded).toBe tGroup.value
     
-    describe 'type', ->
+    describe 'typeGroup', ->
       
       it 'should set a type of `group` and `kinematic`', ->
-        test = {}
-        kinematicMethods.type.finalize.call(test)
-        expect(test.type).toBe(fGroup | fKinematic)
+        test = { type: [] }
+        kinematicMethods.typeGroup.finalize.call(test)
+        expect(test.type).toContain tGroup
+        expect(test.type).toContain tKinematic
   
   describe 'implementation', ->
   
@@ -74,20 +84,21 @@ describe 'platter: space, kinematic', ->
       expect(kinematic instanceof Group.ctor).toBe true
     
     it 'should have a nodeType of `kinematic` & `group`', ->
-      grp = !!(kinematic.type & _Node.types['group'])
-      kin = !!(kinematic.type & _Node.types['kinematic'])
+      grp = tGroup.test(kinematic.type)
+      kin = tKinematic.test(kinematic.type)
       expect(grp and kin).toBe true
     
     it 'should override `toString()`', ->
         matcher = toStringHelper('Platter.space.Kinematic#', '({x: 40, y: 10})')
         expect(Kinematic.create(40, 10).toString()).toMatch matcher
     
-    it 'should unset the `_instanceData` when released', ->
+    it 'should reset the `_instanceData` when released', ->
       aabb = AABB.define().dimensions(8, 16).create()
       kinematic.adopt(aabb).setBody(aabb)
+      kinematic.delta.set(Vector.create(6, 6))
       
       expect(kinematic.body?).toBe true
-      expect(kinematic.delta?).toBe true
+      expect(kinematic.delta.nodes.length).toBe 1
       
       fn = -> kinematic.release()
       
@@ -95,7 +106,7 @@ describe 'platter: space, kinematic', ->
       expect(fn).toThrow()
       
       expect(kinematic.body?).toBe true
-      expect(kinematic.delta?).toBe true
+      expect(kinematic.delta.nodes.length).toBe 1
       
       kinematic.body = null
       kinematic.orphan(aabb)
@@ -103,7 +114,7 @@ describe 'platter: space, kinematic', ->
       expect(fn).not.toThrow()
       
       expect(kinematic.body?).toBe false
-      expect(kinematic.delta?).toBe false
+      expect(kinematic.delta.nodes.length).toBe 0
     
     describe 'children', ->
     
@@ -134,39 +145,12 @@ describe 'platter: space, kinematic', ->
           fn = -> kinematic.adopt(node)
           expect(fn).toThrow()
     
-    describe 'delta vector', ->
+    describe 'delta vector interpolation', ->
       
-      it 'should not be settable to `null`', ->
+      it 'should not be settable', ->
         fn = -> kinematic.delta = null
         
         expect(fn).toThrow()
-      
-      it 'should retain the same instance when set', ->
-        curVector = kinematic.delta
-        newVector = new Vector(5, 10)
-        
-        kinematic.delta = newVector
-        
-        expect(kinematic.delta).not.toBe newVector
-        expect(kinematic.delta).toBe curVector
-      
-      it 'should be settable with any sort of vector, including literals', ->
-        litVector = { x: 8, y: 16 }
-        immVector = new ImmutableVector(5, 10)
-        simVector = new SimpleVector(3, 6)
-        notVector = { dx: 1, dy: 2 }
-        
-        allowed = [ litVector, immVector, simVector ]
-        for v in allowed
-          fn = -> kinematic.delta = v
-          expect(fn).not.toThrow()
-          expect(kinematic.delta.x).toBe v.x
-          expect(kinematic.delta.y).toBe v.y
-        
-        fn = -> kinematic.delta = notVector
-        expect(fn).toThrow()
-        expect(kinematic.delta.x).not.toBe notVector.dx
-        expect(kinematic.delta.y).not.toBe notVector.dy
     
     describe 'body primative', ->
       

@@ -1,16 +1,20 @@
 `import Factory from 'platter/factory/base'`
 `import Container from 'platter/space/container'`
+`import { container as tContainer } from 'platter/space/_type'`
 `import { methods as containerMethods } from 'platter/space/container'`
-`import _Node from 'platter/space/node'`
+`import _Node, { methods as nodeMethods } from 'platter/space/node'`
+`import CallbackType from 'platter/callback/type'`
+`import CallbackOptions from 'platter/callback/options'`
 `import Group from 'platter/space/group'`
+`import { group as tGroup } from 'platter/space/_type'`
 `import { methods as groupMethods } from 'platter/space/group'`
 
 Node = new Factory(_Node)
+tTestBox = CallbackType.add 'test-box'
 
 class Box
-  typeGroup = _Node.addType 'test-box'
   constructor: (@x, @y, @width, @height) ->
-    @type = typeGroup
+    @type = tTestBox
   toRect: -> this
   toString: -> "Box({x: #{@x}, y: #{@y}, width: #{@width}, height: #{@height}})"
 
@@ -18,12 +22,13 @@ describe 'platter: space, container', ->
   
   describe 'methods', ->
     
-    fContainer = _Node.types['container']
-    fGroup = _Node.types['group']
+    it 'should have methods provided by Node', ->
+      for k, v of nodeMethods
+        expect(Container.hasMethod(k, v)).toBe true
     
     it 'should have methods provided by Group, excluding some methods', ->
       for k, v of groupMethods
-        if k not in ['filter', 'allow', 'type']
+        if k not in ['filter', 'include', 'typeGroup']
           expect(Container.hasMethod(k, v)).toBe true
         else
           expect(Container.hasMethod(k, v)).toBe false
@@ -38,19 +43,23 @@ describe 'platter: space, container', ->
         test = {}
         containerMethods.filter.init.call(test)
         
-        expect(test.filter.allowed).toBe fGroup
-        expect(test.filter.excluded).toBe 0x00000000
+        expect(test.filter.included).toEqual [tGroup]
+        expect(test.filter.excluded).toEqual []
         
-        expect(Object.isFrozen(test.filter)).toBe false
         containerMethods.filter.seal.call(test)
-        expect(Object.isFrozen(test.filter)).toBe true
+        expect(test.filter instanceof CallbackOptions).toBe true
+        expect(test.filter.isSealed).toBe true
+        
+        expect(test.filter.included).toBe tGroup.value
+        expect(test.filter.excluded).toBe 0x00000000
     
-    describe 'type', ->
+    describe 'typeGroup', ->
       
       it 'should set a type of `group` and `container`', ->
-        test = {}
-        containerMethods.type.finalize.call(test)
-        expect(test.type).toBe(fGroup | fContainer)
+        test = { type: [] }
+        containerMethods.typeGroup.finalize.call(test)
+        expect(test.type).toContain tGroup
+        expect(test.type).toContain tContainer
   
   describe 'implementation', ->
     
@@ -60,9 +69,9 @@ describe 'platter: space, container', ->
     it 'should extend `Group`', ->
       expect(container instanceof Group.ctor).toBe true
       
-    it 'should have a nodeType of `container` & `group`', ->
-      grp = !!(container.type & _Node.types['group'])
-      con = !!(container.type & _Node.types['container'])
+    it 'should have a node type of `container` & `group`', ->
+      grp = tGroup.test(container.type)
+      con = tContainer.test(container.type)
       expect(grp and con).toBe true
     
     it 'should override `toString()`', ->

@@ -1,13 +1,23 @@
-define(['exports', 'module', '../math/matrix', '../utils/lowest-common-ancestor'], function (exports, module, _mathMatrix, _utilsLowestCommonAncestor) {
+define(['exports', '../math/matrix', '../callback/type', '../callback/meta-type', '../utils/array', '../utils/lowest-common-ancestor'], function (exports, _mathMatrix, _callbackType, _callbackMetaType, _utilsArray, _utilsLowestCommonAncestor) {
   'use strict';
+
+  Object.defineProperty(exports, '__esModule', {
+    value: true
+  });
 
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
   var _Matrix = _interopRequireDefault(_mathMatrix);
 
+  var _CallbackType = _interopRequireDefault(_callbackType);
+
+  var _CallbackMetatype = _interopRequireDefault(_callbackMetaType);
+
   var _lowestCommonAncestor = _interopRequireDefault(_utilsLowestCommonAncestor);
 
-  var Node, curTypeShift, recurse, wm;
+  var Node, methods, recurse, tNull, wm;
+
+  tNull = _CallbackType['default'].get('null');
 
   wm = new _Matrix['default']();
 
@@ -21,20 +31,10 @@ define(['exports', 'module', '../math/matrix', '../utils/lowest-common-ancestor'
     }
   };
 
-  curTypeShift = 0;
-
   Node = (function () {
-    Node.types = {};
-
-    Node.addType = function (type) {
-      var base;
-      if ((base = Node.types)[type] == null) {
-        base[type] = 1 << curTypeShift++;
-      }
-      if (curTypeShift > 30) {
-        throw new Error('too many node types');
-      }
-      return Node.types[type];
+    Node.init = function (instance, x, y) {
+      instance.x = x;
+      return instance.y = y;
     };
 
     Object.defineProperty(Node.prototype, 'parent', {
@@ -56,13 +56,11 @@ define(['exports', 'module', '../math/matrix', '../utils/lowest-common-ancestor'
     Object.defineProperty(Node.prototype, 'type', {
       get: function get() {
         var ref;
-        return (ref = this._data.type) != null ? ref : 0;
+        return (ref = this._data.type) != null ? ref : tNull;
       }
     });
 
-    function Node(x, y) {
-      this.x = x;
-      this.y = y;
+    function Node() {
       this._parent = null;
     }
 
@@ -180,11 +178,33 @@ define(['exports', 'module', '../math/matrix', '../utils/lowest-common-ancestor'
     };
 
     Node.prototype.toString = function () {
-      return 'Platter.space.Node#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
+      return "Platter.space.Node#" + this.id + "({x: " + this.x + ", y: " + this.y + "})";
     };
 
     return Node;
   })();
 
-  module.exports = Node;
+  exports.methods = methods = {
+    type: {
+      init: function init() {
+        return this.type = [];
+      },
+      apply: function apply(cbType) {
+        var ref;
+        if ((0, _utilsArray.isArray)(cbType)) {
+          return (ref = this.type).push.apply(ref, cbType);
+        } else {
+          return this.type.push(cbType);
+        }
+      },
+      seal: function seal() {
+        var type;
+        type = this.type;
+        return this.type = type.length > 0 ? new _CallbackMetatype['default'](type) : null;
+      }
+    }
+  };
+
+  exports.methods = methods;
+  exports['default'] = Node;
 });

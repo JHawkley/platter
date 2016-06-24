@@ -1,17 +1,21 @@
 `import Factory from 'platter/factory/base'`
 `import Dynamic from 'platter/space/dynamic'`
+`import { dynamic as tDynamic } from 'platter/space/_type'`
 `import { methods as dynamicMethods } from 'platter/space/dynamic'`
-`import _Node from 'platter/space/node'`
+`import _Node, { methods as nodeMethods } from 'platter/space/node'`
+`import CallbackType from 'platter/callback/type'`
+`import CallbackOptions from 'platter/callback/options'`
 `import Group from 'platter/space/group'`
+`import { group as tGroup } from 'platter/space/_type'`
 `import { methods as groupMethods } from 'platter/space/group'`
-`import Vector, { SimpleVector, ImmutableVector } from 'platter/math/vector'`
+`import Vector, { ImmutableVector } from 'platter/math/vector'`
 
 Node = new Factory(_Node)
+tTestBox = CallbackType.add 'test-box'
 
 class Box
-  typeGroup = _Node.addType 'test-box'
   constructor: (@x, @y, @width, @height) ->
-    @type = typeGroup
+    @type = tTestBox
   toRect: -> this
   toString: -> "Box({x: #{@x}, y: #{@y}, width: #{@width}, height: #{@height}})"
 
@@ -19,12 +23,13 @@ describe 'platter: space, dynamic', ->
   
   describe 'methods', ->
     
-    fDynamic = _Node.types['dynamic']
-    fGroup = _Node.types['group']
+    it 'should have methods provided by Node', ->
+      for k, v of nodeMethods
+        expect(Dynamic.hasMethod(k, v)).toBe true
     
     it 'should have methods provided by Group, excluding some methods', ->
       for k, v of groupMethods
-        if k not in ['filter', 'type']
+        if k not in ['filter', 'typeGroup']
           expect(Dynamic.hasMethod(k, v)).toBe true
         else
           expect(Dynamic.hasMethod(k, v)).toBe false
@@ -39,19 +44,23 @@ describe 'platter: space, dynamic', ->
         test = {}
         dynamicMethods.filter.init.call(test)
         
-        expect(test.filter.allowed).toBe 0x00000000
-        expect(test.filter.excluded).toBe fGroup
+        expect(test.filter.included).toEqual []
+        expect(test.filter.excluded).toContain tGroup
         
-        expect(Object.isFrozen(test.filter)).toBe false
         dynamicMethods.filter.seal.call(test)
-        expect(Object.isFrozen(test.filter)).toBe true
+        expect(test.filter instanceof CallbackOptions).toBe true
+        expect(test.filter.isSealed).toBe true
+        
+        expect(test.filter.included).toBe 0x00000000
+        expect(test.filter.excluded).toBe tGroup.value
     
-    describe 'type', ->
+    describe 'typeGroup', ->
       
       it 'should set a type of `group` and `dynamic`', ->
-        test = {}
-        dynamicMethods.type.finalize.call(test)
-        expect(test.type).toBe(fGroup | fDynamic)
+        test = { type: [] }
+        dynamicMethods.typeGroup.finalize.call(test)
+        expect(test.type).toContain tGroup
+        expect(test.type).toContain tDynamic
   
   describe 'implementation', ->
   
@@ -61,9 +70,9 @@ describe 'platter: space, dynamic', ->
     it 'should extend `Group`', ->
       expect(dynamic instanceof Group.ctor).toBe true
     
-    it 'should have a nodeType of `dynamic` & `group`', ->
-      grp = !!(dynamic.type & _Node.types['group'])
-      dyn = !!(dynamic.type & _Node.types['dynamic'])
+    it 'should have a node type of `dynamic` & `group`', ->
+      grp = tGroup.test(dynamic.type)
+      dyn = tDynamic.test(dynamic.type)
       expect(grp and dyn).toBe true
     
     it 'should override `toString()`', ->
@@ -85,36 +94,9 @@ describe 'platter: space, dynamic', ->
         expect(fn2).not.toThrow()
         expect(fn3).toThrow()
     
-    describe 'delta vector', ->
+    describe 'delta vector interpolation', ->
       
-      it 'should not be settable to `null`', ->
+      it 'should not be settable', ->
         fn = -> dynamic.delta = null
         
         expect(fn).toThrow()
-      
-      it 'should retain the same instance when set', ->
-        curVector = dynamic.delta
-        newVector = new Vector(5, 10)
-        
-        dynamic.delta = newVector
-        
-        expect(dynamic.delta).not.toBe newVector
-        expect(dynamic.delta).toBe curVector
-      
-      it 'should be settable with any sort of vector, including literals', ->
-        litVector = { x: 8, y: 16 }
-        immVector = new ImmutableVector(5, 10)
-        simVector = new SimpleVector(3, 6)
-        notVector = { dx: 1, dy: 2 }
-        
-        allowed = [ litVector, immVector, simVector ]
-        for v in allowed
-          fn = -> dynamic.delta = v
-          expect(fn).not.toThrow()
-          expect(dynamic.delta.x).toBe v.x
-          expect(dynamic.delta.y).toBe v.y
-        
-        fn = -> dynamic.delta = notVector
-        expect(fn).toThrow()
-        expect(dynamic.delta.x).not.toBe notVector.dx
-        expect(dynamic.delta.y).not.toBe notVector.dy

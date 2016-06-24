@@ -1,7 +1,13 @@
-define(["exports", "module"], function (exports, module) {
-  "use strict";
+define(['exports', 'module', '../math/rect'], function (exports, module, _mathRect) {
+  'use strict';
 
-  var QuadTree, pool, quadBL, quadBR, quadNone, quadTL, quadTR;
+  function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _Rect = _interopRequireDefault(_mathRect);
+
+  var QuadTree, pool, quadBL, quadBR, quadNone, quadTL, quadTR, workingRect;
+
+  workingRect = _Rect['default'].create();
 
   quadNone = 0;
 
@@ -24,48 +30,35 @@ define(["exports", "module"], function (exports, module) {
       quadBR: quadBR
     };
 
-    QuadTree.create = function () {
-      var instance;
-      instance = pool.pop();
-      if (instance != null) {
-        return QuadTree.init.apply(instance, arguments);
-      } else {
-        return (function (func, args, ctor) {
-          ctor.prototype = func.prototype;
-          var child = new ctor(),
-              result = func.apply(child, args);
-          return Object(result) === result ? result : child;
-        })(QuadTree, arguments, function () {});
-      }
+    QuadTree.create = function (x, y, w, h, maxObjects, maxLevels, level) {
+      var instance, ref;
+      instance = (ref = pool.pop()) != null ? ref : new QuadTree();
+      return QuadTree.init(instance, x, y, w, h, maxObjects, maxLevels, level);
     };
 
     QuadTree.reclaim = function (instance) {
       return pool.push(instance);
     };
 
-    QuadTree.init = function (x, y, w, h, maxObjects, maxLevels, level) {
-      this.maxObjects = maxObjects;
-      this.maxLevels = maxLevels;
-      this.level = level;
-      this.bounds.x = x;
-      this.bounds.y = y;
-      this.bounds.width = w;
-      this.bounds.height = h;
-      return this;
+    QuadTree.init = function (instance, x, y, w, h, maxObjects, maxLevels, level) {
+      var ref;
+      if (typeof x !== 'number') {
+        maxObjects = y;
+        maxLevels = w;
+        level = h;
+        ref = x, x = ref.x, y = ref.y, w = ref.width, h = ref.height;
+      }
+      instance.maxObjects = maxObjects != null ? maxObjects : 10;
+      instance.maxLevels = maxLevels != null ? maxLevels : 4;
+      instance.level = level != null ? level : 0;
+      instance.bounds.setProps(x, y, w, h);
+      return instance;
     };
 
     function QuadTree() {
-      var bounds, h, maxLevels, maxObjects, ref, ref1, w, x, y;
       this.objects = [];
       this.nodes = null;
-      this.bounds = {};
-      if (arguments.length === 7) {
-        QuadTree.init.apply(this, arguments);
-      } else {
-        bounds = arguments[0], maxObjects = arguments[1], maxLevels = arguments[2];
-        ref1 = (ref = typeof bounds.toRect === "function" ? bounds.toRect() : void 0) != null ? ref : bounds, x = ref1.x, y = ref1.y, w = ref1.width, h = ref1.height;
-        QuadTree.init.call(this, x, y, w, h, maxObjects != null ? maxObjects : 10, maxLevels != null ? maxLevels : 4, 0);
-      }
+      this.bounds = _Rect['default'].create();
     }
 
     QuadTree.prototype.split = function () {
@@ -88,7 +81,7 @@ define(["exports", "module"], function (exports, module) {
 
     QuadTree.prototype.getQuads = function (object) {
       var h, hm, leftQuadrant, quads, rect, ref, rightQuadrant, vm, w, x, y;
-      rect = (ref = typeof object.toRect === "function" ? object.toRect() : void 0) != null ? ref : object;
+      rect = (ref = typeof object.toRect === "function" ? object.toRect(workingRect) : void 0) != null ? ref : object;
       quads = quadNone;
       vm = this.bounds.x + this.bounds.width / 2;
       hm = this.bounds.y + this.bounds.height / 2;
@@ -156,10 +149,13 @@ define(["exports", "module"], function (exports, module) {
       return (ref1 = Array.prototype.concat).call.apply(ref1, arrs);
     };
 
-    QuadTree.prototype.reset = function (bounds) {
-      var ref;
+    QuadTree.prototype.release = function () {
       this.clear();
-      bounds = (ref = typeof bounds.toRect === "function" ? bounds.toRect() : void 0) != null ? ref : bounds;
+      return QuadTree.reclaim(this);
+    };
+
+    QuadTree.prototype.reset = function (bounds) {
+      this.clear();
       this.bounds.x = bounds.x;
       this.bounds.y = bounds.y;
       this.bounds.width = bounds.width;
@@ -173,8 +169,7 @@ define(["exports", "module"], function (exports, module) {
         ref = this.nodes;
         for (k in ref) {
           node = ref[k];
-          node.clear();
-          QuadTree.reclaim(node);
+          node.release();
         }
       }
       return this.nodes = null;
@@ -182,10 +177,10 @@ define(["exports", "module"], function (exports, module) {
 
     QuadTree.prototype.toString = function () {
       var indent, j, len, node, object, parts, quad, ref, ref1, str;
-      indent = new Array(this.level + 1).join("  ");
+      indent = new Array(this.level + 1).join('  ');
       parts = [];
       parts.push("Quad-Tree (level " + this.level + ")");
-      parts.push("-Objects-");
+      parts.push('-Objects-');
       if (this.objects.length > 0) {
         ref = this.objects;
         for (j = 0, len = ref.length; j < len; j++) {
@@ -193,38 +188,38 @@ define(["exports", "module"], function (exports, module) {
           parts.push(object.toString());
         }
       } else {
-        parts.push("(empty)");
+        parts.push('(empty)');
       }
-      parts.push("");
-      parts.push("--Nodes--");
+      parts.push('');
+      parts.push('--Nodes--');
       if (this.nodes != null) {
         str = parts.map(function (part) {
           return indent + part;
-        }).join("\r\n");
+        }).join('\r\n');
         ref1 = this.nodes;
         for (quad in ref1) {
           node = ref1[quad];
-          str += "\r\n";
+          str += '\r\n';
           str += (function () {
             switch (Number(quad)) {
               case quadTL:
-                return indent + "@ top-left\r\n";
+                return indent + '@ top-left\r\n';
               case quadTR:
-                return indent + "@ top-right\r\n";
+                return indent + '@ top-right\r\n';
               case quadBL:
-                return indent + "@ bottom-left\r\n";
+                return indent + '@ bottom-left\r\n';
               case quadBR:
-                return indent + "@ bottom-right\r\n";
+                return indent + '@ bottom-right\r\n';
             }
           })();
           str += node.toString();
         }
       } else {
-        parts.push("(empty)");
-        parts.push("");
+        parts.push('(empty)');
+        parts.push('');
         str = parts.map(function (part) {
           return indent + part;
-        }).join("\r\n");
+        }).join('\r\n');
       }
       return str;
     };

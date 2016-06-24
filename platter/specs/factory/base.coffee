@@ -7,7 +7,10 @@ describe 'platter: factory, base', ->
     testFn: (str) -> str + '-away'
   
   class testCtor2
-    constructor: (@name, @health) -> return
+    @init: (instance, name, health) ->
+      instance.name = name
+      instance.health = health
+    constructor: -> return
   
   class testCtor3
   
@@ -67,7 +70,7 @@ describe 'platter: factory, base', ->
     expect(instance.testProp).toBe 'something'
     expect(instance.testFn('up-up')).toBe 'up-up-and-away'
   
-  it 'should pass the `create()` arguments to the class constructor', ->
+  it 'should pass the `create()` arguments to the class initializer', ->
     factory = new Factory testCtor2
     
     instance = factory.define().create('Klonoa', 16)

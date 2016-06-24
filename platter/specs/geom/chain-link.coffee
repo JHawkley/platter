@@ -1,8 +1,10 @@
-`import Node from 'platter/space/node'`
 `import ChainLink from 'platter/geom/chain-link'`
 `import { methods as chainLinkMethods } from 'platter/geom/chain-link'`
+`import { chainLink as tChainLink } from 'platter/geom/_type'`
 `import Line from 'platter/geom/line'`
 `import { methods as lineMethods } from 'platter/geom/line'`
+`import { line as tLine } from 'platter/geom/_type'`
+`import { methods as nodeMethods } from 'platter/space/node'`
 `import { methods as primativeMethods } from 'platter/geom/primative'`
 `import Group from 'platter/space/group'`
 
@@ -14,14 +16,18 @@ describe 'platter: geometry, chain-link', ->
   
   describe 'methods', ->
     
+    it 'should have methods provided by Node', ->
+      for k, v of nodeMethods
+        expect(ChainLink.hasMethod(k, v)).toBe true
+    
     it 'should have methods provided by Primative', ->
       for k, v of primativeMethods
         expect(ChainLink.hasMethod(k, v)).toBe true
     
-    it 'should have methods provided by Line, except `type`', ->
-      for k, v of lineMethods when k isnt 'type'
+    it 'should have methods provided by Line, except `typeGroup`', ->
+      for k, v of lineMethods when k isnt 'typeGroup'
         expect(ChainLink.hasMethod(k, v)).toBe true
-      expect(ChainLink.hasMethod('type', lineMethods.type)).toBe false
+      expect(ChainLink.hasMethod('typeGroup', lineMethods.typeGroup)).toBe false
     
     it 'should have methods provided for itself', ->
       for k, v of chainLinkMethods
@@ -30,10 +36,11 @@ describe 'platter: geometry, chain-link', ->
     describe 'type', ->
       
       it 'should set a type of `line` and `chain-link`', ->
-        types = Node.types
-        test = {}
-        chainLinkMethods.type.finalize.call(test)
-        expect(test.type).toBe(types['line'] | types['chain-link'])
+        test = { type: [] }
+        chainLinkMethods.typeGroup.finalize.call(test)
+        
+        expect(test.type).toContain tLine
+        expect(test.type).toContain tChainLink
   
   describe 'implementation', ->
   
@@ -41,6 +48,15 @@ describe 'platter: geometry, chain-link', ->
       instance = ChainLink.define().from(13, 20).to(5, 9).create({})
       matcher = toStringHelper('Platter.geom.ChainLink#', '({x: 13, y: 20}, {x: 5, y: 9})')
       expect(instance.toString()).toMatch matcher
+    
+    xit 'should implement the `makeProxy()` interface', ->
+      instance = ChainLink.define().from(13, 20).to(5, 9).create({})
+      fn = -> proxy = instance.makeProxy()
+      
+      expect(fn).not.toThrow()
+      # Also should not use the LineProxy, as it would if this
+      # method didn't override `Line.makeProxy()`.
+      expect(proxy instanceof ChainLinkProxy.ctor).toBe true
     
     it 'should not be able to be a child of a group', ->
       instance = ChainLink.define().from(13, 20).to(5, 9).create({})

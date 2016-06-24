@@ -1,4 +1,4 @@
-define(['exports', '../factory/base', './group', './node'], function (exports, _factoryBase, _group, _node) {
+define(['exports', '../factory/base', './group', './node', './_type'], function (exports, _factoryBase, _group, _node, _type) {
   'use strict';
 
   Object.defineProperty(exports, '__esModule', {
@@ -11,12 +11,9 @@ define(['exports', '../factory/base', './group', './node'], function (exports, _
 
   var _Group = _interopRequireDefault(_group);
 
-  var _Node = _interopRequireDefault(_node);
-
   var containerFactory,
       k,
       methods,
-      typeGroup,
       v,
       extend = function extend(child, parent) {
     for (var key in parent) {
@@ -27,17 +24,19 @@ define(['exports', '../factory/base', './group', './node'], function (exports, _
   },
       hasProp = ({}).hasOwnProperty;
 
-  exports.type = typeGroup = _Node['default'].addType('container');
-
   containerFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
 
-    function _Class(x, y) {
-      _Class.__super__.constructor.call(this, x, y);
+    _Class.init = function (instance, x, y) {
+      return _Class.__super__.constructor.init.call(this, instance, x, y);
+    };
+
+    function _Class() {
+      _Class.__super__.constructor.call(this);
     }
 
     _Class.prototype.toString = function () {
-      return 'Platter.space.Container#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
+      return "Platter.space.Container#" + this.id + "({x: " + this.x + ", y: " + this.y + "})";
     };
 
     return _Class;
@@ -47,25 +46,30 @@ define(['exports', '../factory/base', './group', './node'], function (exports, _
     filter: {
       init: function init() {
         return this.filter = {
-          allowed: _Node['default'].types['group'],
-          excluded: 0
+          included: [_type.group],
+          excluded: []
         };
       },
       seal: function seal() {
-        return Object.freeze(this.filter);
+        return _group.methods.filter.seal.call(this);
       }
     },
-    type: {
+    typeGroup: {
       finalize: function finalize() {
-        _group.methods.type.finalize.call(this);
-        return this.type |= typeGroup;
+        _group.methods.typeGroup.finalize.call(this);
+        return this.type.push(_type.container);
       }
     }
   };
 
+  for (k in _node.methods) {
+    v = _node.methods[k];
+    containerFactory.method(k, v);
+  }
+
   for (k in _group.methods) {
     v = _group.methods[k];
-    if (k !== 'filter' && k !== 'allow' && k !== 'type') {
+    if (k !== 'filter' && k !== 'include' && k !== 'typeGroup') {
       containerFactory.method(k, v);
     }
   }
@@ -76,6 +80,5 @@ define(['exports', '../factory/base', './group', './node'], function (exports, _
   }
 
   exports.methods = methods;
-  exports.type = typeGroup;
   exports['default'] = containerFactory;
 });

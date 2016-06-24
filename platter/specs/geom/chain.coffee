@@ -1,15 +1,22 @@
-`import Node from 'platter/space/node'`
+`import Node, { methods as nodeMethods } from 'platter/space/node'`
 `import Chain from 'platter/geom/chain'`
+`import { chain as tChain } from 'platter/geom/_type'`
 `import { methods as chainMethods } from 'platter/geom/chain'`
 `import Primative from 'platter/geom/primative'`
 `import { methods as primativeMethods } from 'platter/geom/primative'`
+`import CallbackType from 'platter/callback/type'`
+`import CallbackMetatype from 'platter/callback/meta-type'`
 `import { iterateOn } from 'platter/utils/es6'`
+`import Rect from 'platter/math/rect'`
 
 cp = (pt1, pt2) -> return switch
   when not (pt1? and pt2?) then false
   when pt1.x isnt pt2.x then false
   when pt1.y isnt pt2.y then false
   else true
+
+tTestType1 = CallbackType.add 'test-type-1'
+tTestType2 = CallbackType.add 'test-type-2'
 
 describe 'platter: geometry, chain', ->
   
@@ -23,6 +30,13 @@ describe 'platter: geometry, chain', ->
     expect(instance instanceof Primative).toBe true
   
   describe 'methods', ->
+    
+    it 'should have methods provided by Node, excluding some methods', ->
+      for k, v of nodeMethods
+        if k not in ['type']
+          expect(Chain.hasMethod(k, v)).toBe true
+        else
+          expect(Chain.hasMethod(k, v)).toBe false
     
     it 'should have methods provided by Primative', ->
       for k, v of primativeMethods
@@ -171,11 +185,8 @@ describe 'platter: geometry, chain', ->
     
     describe 'links', ->
       
-      eHitBox = (1 << 2)
-      fDmgBox = (1 << 3)
-      
       it 'should create chain-link generators for each posiible line', ->
-        test = { x: 2, y: 4, filter: { group: 0x00000000, mask: 0x00000000} }
+        test = { x: 2, y: 4, chainType: [] }
         chainMethods.links.init.call(test)
         
         expect(test.links).toEqual []
@@ -208,8 +219,7 @@ describe 'platter: geometry, chain', ->
       
       it 'should reverse the winding when the `reverse` flag is set', ->
         test = {
-          x: 2, y: 4, links: [], reversed: true
-          filter: { group: 0x00000000, mask: 0x00000000}
+          x: 2, y: 4, links: [], reversed: true, chainType: []
           points: [point1, point2, point3, point4, point1]
         }
         
@@ -237,23 +247,27 @@ describe 'platter: geometry, chain', ->
             expect(cp(link.point1, expectation[3])).toBe true
             expect(cp(link.point2, expectation[0])).toBe true
       
-      it 'should apply the chain\'s filter group & mask to the links', ->
+      it 'should apply the chain\'s type to the links', ->
         test = { links: [] }
-        test.filter = { group: eHitBox, mask: fDmgBox }
+        test.type = [tChain, tTestType1, tTestType2]
+        test.chainType = [tTestType1, tTestType2]
         test.points = [point1, point2, point3, point4, point1]
         
         chainMethods.links.seal.call(test)
+        
+        expect(test.chainType).toBeUndefined()
         
         host = {}
         links = (gen.create(host) for gen in test.links)
         
         for link in links
-          expect(link.filter.group).toBe eHitBox
-          expect(link.filter.mask).toBe fDmgBox
+          expect(link.type.test(tTestType1)).toBe true
+          expect(link.type.test(tTestType2)).toBe true
       
       it 'should be able to use the generators multiple times', ->
         test = { links: [] }
-        test.filter = { group: eHitBox, mask: fDmgBox }
+        test.type = [tChain, tTestType1, tTestType2]
+        test.chainType = [tTestType1, tTestType2]
         test.points = [point1, point2, point3, point4, point1]
         
         chainMethods.links.seal.call(test)
@@ -280,11 +294,48 @@ describe 'platter: geometry, chain', ->
         expect(Object.isFrozen(test.rect)).toBe true
     
     describe 'type', ->
+      
+      it 'should initialize the type arrays', ->
+        test = {}
+        chainMethods.type.init.call(test)
+        
+        expect(test.type).toEqual []
+        expect(test.chainType).toEqual []
+      
+      it 'should provide a means to add a type', ->
+        test = { type: [], chainType: [] }
+        
+        chainMethods.type.apply.call(test, tTestType1)
+        
+        expect(test.type).toContain tTestType1
+        expect(test.chainType).toContain tTestType1
+      
+      it 'should provide a means to add several types', ->
+        test = { type: [], chainType: [] }
+        
+        chainMethods.type.apply.call(test, [tTestType1, tTestType2])
+        
+        expect(test.type).toContain tTestType1
+        expect(test.type).toContain tTestType2
+        
+        expect(test.chainType).toContain tTestType1
+        expect(test.chainType).toContain tTestType2
+      
+      it 'should seal the types by creating a meta-type', ->
+        test = { type: [ tTestType1, tTestType2 ] }
+        sType = tTestType1.value | tTestType2.value
+        
+        chainMethods.type.seal.call(test)
+        
+        expect(test.type instanceof CallbackMetatype).toBe true
+        expect(test.type.value).toBe sType
+    
+    describe 'typeGroup', ->
     
       it 'should set a type of `chain`', ->
-        test = {}
-        chainMethods.type.finalize.call(test)
-        expect(test.type).toBe Node.types['chain']
+        test = { type: [] }
+        chainMethods.typeGroup.finalize.call(test)
+        expect(test.type).toContain tChain
   
   describe 'implementation', ->
     chainGen = null
@@ -306,7 +357,7 @@ describe 'platter: geometry, chain', ->
         expect(chain.toString()).toMatch matcher
       
       it 'should implement the `toRect()` interface', ->
-        rect = chain.toRect()
+        rect = chain.toRect(Rect.create())
         expectation = { x: 5, y: 5, width: 10, height: 5 }
         
         for k of expectation

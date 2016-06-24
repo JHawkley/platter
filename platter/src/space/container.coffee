@@ -1,31 +1,35 @@
 `import Factory from '../factory/base'`
 `import Group from './group'`
+`import { methods as nodeMethods } from './node'`
 `import { methods as groupMethods } from './group'`
-`import Node from './node'`
-
-typeGroup = Node.addType 'container'
+`import { group as tGroup } from './_type'`
+`import { container as typeGroup } from './_type'`
 
 containerFactory = new Factory class extends Group.ctor
   
-  constructor: (x, y) -> super(x, y)
+  @init: (instance, x, y) -> super(instance, x, y)
+  
+  constructor: -> super()
   
   toString: -> "Platter.space.Container##{@id}({x: #{@x}, y: #{@y}})"
 
 methods =
   # Sets the filter to specifically allow only groups.
   filter:
-    init: -> @filter = { allowed: Node.types['group'], excluded: 0x00000000 }
-    seal: -> Object.freeze(@filter)
+    init: -> @filter = { included: [tGroup], excluded: [] }
+    seal: -> groupMethods.filter.seal.call(this)
   # Provides the node type.
-  type:
+  typeGroup:
     finalize: ->
-      groupMethods.type.finalize.call(this)
-      @type |= typeGroup
+      groupMethods.typeGroup.finalize.call(this)
+      @type.push typeGroup
 
-for k, v of groupMethods when k not in ['filter', 'allow', 'type']
+for k, v of nodeMethods
+  containerFactory.method(k, v)
+for k, v of groupMethods when k not in ['filter', 'include', 'typeGroup']
   containerFactory.method(k, v)
 for k, v of methods
   containerFactory.method(k, v)
 
-`export { methods, typeGroup as type }`
+`export { methods }`
 `export default containerFactory`

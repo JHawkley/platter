@@ -1,4 +1,4 @@
-define(['exports', '../factory/base', '../space/node', './primative', '../math/vector'], function (exports, _factoryBase, _spaceNode, _primative, _mathVector) {
+define(['exports', '../factory/base', './primative', '../space/node', '../math/vector', '../math/vector-math', './_support', './_type'], function (exports, _factoryBase, _primative, _spaceNode, _mathVector, _mathVectorMath, _support, _type) {
   'use strict';
 
   Object.defineProperty(exports, '__esModule', {
@@ -9,14 +9,11 @@ define(['exports', '../factory/base', '../space/node', './primative', '../math/v
 
   var _Factory = _interopRequireDefault(_factoryBase);
 
-  var _Node = _interopRequireDefault(_spaceNode);
-
   var _Primative = _interopRequireDefault(_primative);
 
   var k,
       lineFactory,
       methods,
-      typeGroup,
       v,
       extend = function extend(child, parent) {
     for (var key in parent) {
@@ -26,8 +23,6 @@ define(['exports', '../factory/base', '../space/node', './primative', '../math/v
     }ctor.prototype = parent.prototype;child.prototype = new ctor();child.__super__ = parent.prototype;return child;
   },
       hasProp = ({}).hasOwnProperty;
-
-  exports.type = typeGroup = _Node['default'].addType('line');
 
   lineFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
@@ -60,15 +55,27 @@ define(['exports', '../factory/base', '../space/node', './primative', '../math/v
       _Class.__super__.constructor.call(this);
     }
 
-    _Class.prototype.toRect = function () {
-      return this._data.rect;
+    _Class.prototype.support = function (out, v) {
+      return (0, _support.line)(out, this, v);
+    };
+
+    _Class.prototype.centerOf = function (out) {
+      (0, _mathVectorMath.set)(out, this.point1);
+      (0, _mathVectorMath.add)(out, out, this.point2);
+      (0, _mathVectorMath.mul)(out, out, 0.5);
+      return out;
+    };
+
+    _Class.prototype.toRect = function (out) {
+      out.set(this._data.rect);
+      return out;
     };
 
     _Class.prototype.toString = function () {
       var pt1, pt2;
-      pt1 = '{x: ' + this.point1.x + ', y: ' + this.point1.y + '}';
-      pt2 = '{x: ' + this.point2.x + ', y: ' + this.point2.y + '}';
-      return 'Platter.geom.Line#' + this.id + '(' + pt1 + ', ' + pt2 + ')';
+      pt1 = "{x: " + this.point1.x + ", y: " + this.point1.y + "}";
+      pt2 = "{x: " + this.point2.x + ", y: " + this.point2.y + "}";
+      return "Platter.geom.Line#" + this.id + "(" + pt1 + ", " + pt2 + ")";
     };
 
     return _Class;
@@ -141,8 +148,10 @@ define(['exports', '../factory/base', '../space/node', './primative', '../math/v
         if (!(x1 != null && y1 != null && x2 != null && y2 != null)) {
           throw new Error('points for the line must be provided');
         }
-        this.pt1 = new _mathVector.SimpleVector(x1 + offX, y1 + offY);
-        return this.pt2 = new _mathVector.SimpleVector(x2 + offX, y2 + offY);
+        this.pt1 = new _mathVector.ImmutableVector(x1 + offX, y1 + offY);
+        this.pt2 = new _mathVector.ImmutableVector(x2 + offX, y2 + offY);
+        this.x = 0;
+        return this.y = 0;
       }
     },
     normal: {
@@ -179,12 +188,17 @@ define(['exports', '../factory/base', '../space/node', './primative', '../math/v
         return Object.freeze(this.rect);
       }
     },
-    type: {
+    typeGroup: {
       finalize: function finalize() {
-        return this.type = typeGroup;
+        return this.type.push(_type.line);
       }
     }
   };
+
+  for (k in _spaceNode.methods) {
+    v = _spaceNode.methods[k];
+    lineFactory.method(k, v);
+  }
 
   for (k in _primative.methods) {
     v = _primative.methods[k];
@@ -197,6 +211,6 @@ define(['exports', '../factory/base', '../space/node', './primative', '../math/v
   }
 
   exports.methods = methods;
-  exports.type = typeGroup;
+  exports.type = _type.line;
   exports['default'] = lineFactory;
 });

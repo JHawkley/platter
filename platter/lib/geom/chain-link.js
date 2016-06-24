@@ -1,4 +1,4 @@
-define(['exports', '../factory/base', '../space/node', './line', './primative'], function (exports, _factoryBase, _spaceNode, _line, _primative) {
+define(['exports', '../factory/base', '../callback/type', './line', './_type', '../space/node', './primative'], function (exports, _factoryBase, _callbackType, _line, _type, _spaceNode, _primative) {
   'use strict';
 
   Object.defineProperty(exports, '__esModule', {
@@ -9,14 +9,13 @@ define(['exports', '../factory/base', '../space/node', './line', './primative'],
 
   var _Factory = _interopRequireDefault(_factoryBase);
 
-  var _Node = _interopRequireDefault(_spaceNode);
+  var _CallbackType = _interopRequireDefault(_callbackType);
 
   var _Line = _interopRequireDefault(_line);
 
   var chainLinkFactory,
       k,
       methods,
-      typeGroup,
       v,
       extend = function extend(child, parent) {
     for (var key in parent) {
@@ -27,10 +26,18 @@ define(['exports', '../factory/base', '../space/node', './line', './primative'],
   },
       hasProp = ({}).hasOwnProperty;
 
-  exports.type = typeGroup = _Node['default'].addType('chain-link');
-
   chainLinkFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
+
+    _Class.init = function (instance, host) {
+      if (host == null) {
+        throw new Error('a chain-link requires a chain to host it');
+      }
+      instance._instanceData = {
+        host: host
+      };
+      return Object.freeze(instance._instanceData);
+    };
 
     Object.defineProperty(_Class.prototype, 'host', {
       get: function get() {
@@ -50,15 +57,8 @@ define(['exports', '../factory/base', '../space/node', './line', './primative'],
       }
     });
 
-    function _Class(host) {
+    function _Class() {
       _Class.__super__.constructor.call(this);
-      if (host == null) {
-        throw new Error('a chain-link requires a chain to host it');
-      }
-      this._instanceData = {
-        host: host
-      };
-      Object.freeze(this._instanceData);
     }
 
     _Class.prototype.destroy = function () {
@@ -72,22 +72,27 @@ define(['exports', '../factory/base', '../space/node', './line', './primative'],
 
     _Class.prototype.toString = function () {
       var pt1, pt2;
-      pt1 = '{x: ' + this.point1.x + ', y: ' + this.point1.y + '}';
-      pt2 = '{x: ' + this.point2.x + ', y: ' + this.point2.y + '}';
-      return 'Platter.geom.ChainLink#' + this.id + '(' + pt1 + ', ' + pt2 + ')';
+      pt1 = "{x: " + this.point1.x + ", y: " + this.point1.y + "}";
+      pt2 = "{x: " + this.point2.x + ", y: " + this.point2.y + "}";
+      return "Platter.geom.ChainLink#" + this.id + "(" + pt1 + ", " + pt2 + ")";
     };
 
     return _Class;
   })(_Line['default'].ctor));
 
   exports.methods = methods = {
-    type: {
+    typeGroup: {
       finalize: function finalize() {
-        _line.methods.type.finalize.call(this);
-        return this.type |= typeGroup;
+        _line.methods.typeGroup.finalize.call(this);
+        return this.type.push(_type.chainLink);
       }
     }
   };
+
+  for (k in _spaceNode.methods) {
+    v = _spaceNode.methods[k];
+    chainLinkFactory.method(k, v);
+  }
 
   for (k in _primative.methods) {
     v = _primative.methods[k];
@@ -96,7 +101,7 @@ define(['exports', '../factory/base', '../space/node', './line', './primative'],
 
   for (k in _line.methods) {
     v = _line.methods[k];
-    if (k !== 'type') {
+    if (k !== 'typeGroup') {
       chainLinkFactory.method(k, v);
     }
   }
@@ -107,6 +112,5 @@ define(['exports', '../factory/base', '../space/node', './line', './primative'],
   }
 
   exports.methods = methods;
-  exports.type = typeGroup;
   exports['default'] = chainLinkFactory;
 });

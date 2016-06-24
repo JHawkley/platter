@@ -1,8 +1,8 @@
 # Generates a rectangle which contains all the rectangles in `arr`.
-findBounds = (arr, ref = {}) ->
+findBounds = (out, arr) ->
   if arr.length is 0
-    ref.x = 0; ref.y = 0; ref.width = 0; ref.height = 0
-    return ref
+    out.x = 0; out.y = 0; out.width = 0; out.height = 0
+    return out
   else
     top = left = Number.POSITIVE_INFINITY
     bottom = right = Number.NEGATIVE_INFINITY
@@ -14,9 +14,9 @@ findBounds = (arr, ref = {}) ->
       bottom = Math.max(bottom, y + height)
       right = Math.max(right, x + width)
     
-    ref.x = left; ref.y = top
-    ref.width = right - left
-    ref.height = bottom - top
-    return ref
+    out.x = left; out.y = top
+    out.width = right - left
+    out.height = bottom - top
+    return out
 
 `export default findBounds`

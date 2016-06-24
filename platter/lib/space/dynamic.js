@@ -1,4 +1,4 @@
-define(['exports', '../factory/base', './group', './node', '../math/vector'], function (exports, _factoryBase, _group, _node, _mathVector) {
+define(['exports', '../factory/base', './group', './node', './_type', '../math/vector-interpolation'], function (exports, _factoryBase, _group, _node, _type, _mathVectorInterpolation) {
   'use strict';
 
   Object.defineProperty(exports, '__esModule', {
@@ -11,14 +11,11 @@ define(['exports', '../factory/base', './group', './node', '../math/vector'], fu
 
   var _Group = _interopRequireDefault(_group);
 
-  var _Node = _interopRequireDefault(_node);
-
-  var _Vector = _interopRequireDefault(_mathVector);
+  var _VectorInterpolation = _interopRequireDefault(_mathVectorInterpolation);
 
   var dynamicFactory,
       k,
       methods,
-      typeGroup,
       v,
       extend = function extend(child, parent) {
     for (var key in parent) {
@@ -29,60 +26,50 @@ define(['exports', '../factory/base', './group', './node', '../math/vector'], fu
   },
       hasProp = ({}).hasOwnProperty;
 
-  exports.type = typeGroup = _Node['default'].addType('dynamic');
-
   dynamicFactory = new _Factory['default']((function (superClass) {
     extend(_Class, superClass);
+
+    _Class.init = function (instance, x, y) {
+      return _Class.__super__.constructor.init.call(this, instance, x, y);
+    };
 
     Object.defineProperty(_Class.prototype, 'delta', {
       get: function get() {
         return this._instanceData.delta;
-      },
-      set: function set(val) {
-        var x, y;
-        x = val.x, y = val.y;
-        if (!(x != null && y != null)) {
-          throw new Error('not a proper vector with `x` and `y` properties');
-        }
-        return this._instanceData.delta.setXY(x, y);
       }
     });
 
-    function _Class(x, y, dx, dy) {
-      var _instanceData;
-      _Class.__super__.constructor.call(this, x, y);
-      _instanceData = this._instanceData != null ? this._instanceData : this._instanceData = {
-        delta: null
+    function _Class() {
+      _Class.__super__.constructor.call(this);
+      this._instanceData = {
+        delta: new _VectorInterpolation['default']()
       };
-      _instanceData.delta = _Vector['default'].create(dx != null ? dx : 0, dy != null ? dy : 0);
+      Object.freeze(this._instanceData);
     }
 
     _Class.prototype.destroy = function () {
-      var _instanceData;
       _Class.__super__.destroy.call(this);
-      _instanceData = this._instanceData;
-      _instanceData.delta.release();
-      return _instanceData.delta = null;
+      return this._instanceData.delta.clear();
     };
 
     _Class.prototype.checkType = function (type) {
       switch (false) {
-        case type !== 0:
+        case type.value !== 0x00000000:
           return true;
-        case !(!!(this.filter.allowed & type) && !(this.filter.excluded & type)):
+        case !this.filter.test(type):
           return true;
         default:
           return false;
       }
     };
 
-    _Class.prototype.adoptObj = function (obj) {
+    _Class.prototype.adopt = function (obj) {
       if (obj === this) {
         throw new Error('a group may not adopt itself');
       }
       if (this.checkType(obj.type)) {
         this.children.push(obj);
-        if (typeof obj.wasAdoptedBy === 'function') {
+        if (typeof obj.wasAdoptedBy === "function") {
           obj.wasAdoptedBy(this);
         }
       } else {
@@ -92,7 +79,7 @@ define(['exports', '../factory/base', './group', './node', '../math/vector'], fu
     };
 
     _Class.prototype.toString = function () {
-      return 'Platter.space.Dynamic#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
+      return "Platter.space.Dynamic#" + this.id + "({x: " + this.x + ", y: " + this.y + "})";
     };
 
     return _Class;
@@ -102,25 +89,30 @@ define(['exports', '../factory/base', './group', './node', '../math/vector'], fu
     filter: {
       init: function init() {
         return this.filter = {
-          allowed: 0,
-          excluded: _Node['default'].types['group']
+          included: [],
+          excluded: [_type.group]
         };
       },
       seal: function seal() {
-        return Object.freeze(this.filter);
+        return _group.methods.filter.seal.call(this);
       }
     },
-    type: {
+    typeGroup: {
       finalize: function finalize() {
-        _group.methods.type.finalize.call(this);
-        return this.type |= typeGroup;
+        _group.methods.typeGroup.finalize.call(this);
+        return this.type.push(_type.dynamic);
       }
     }
   };
 
+  for (k in _node.methods) {
+    v = _node.methods[k];
+    dynamicFactory.method(k, v);
+  }
+
   for (k in _group.methods) {
     v = _group.methods[k];
-    if (k !== 'filter' && k !== 'type') {
+    if (k !== 'filter' && k !== 'typeGroup') {
       dynamicFactory.method(k, v);
     }
   }
@@ -131,6 +123,5 @@ define(['exports', '../factory/base', './group', './node', '../math/vector'], fu
   }
 
   exports.methods = methods;
-  exports.type = typeGroup;
   exports['default'] = dynamicFactory;
 });

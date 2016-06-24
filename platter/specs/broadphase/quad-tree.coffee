@@ -9,22 +9,23 @@ quadAll = quadTL | quadTR | quadBL | quadBR
 
 class Line
   constructor: (@x1, @y1, @x2, @y2) -> return
-  toRect: ->
+  toRect: (out) ->
     x = Math.min(@x1, @x2)
     y = Math.min(@y1, @y2)
     width = Math.abs(@x1 - @x2)
     height = Math.abs(@y1 - @y2)
-    return { x, y, width, height }
+    out.setProps(x, y, width, height)
+    return out
   toString: -> "Line({#{@x1}, #{@y1}} -> {#{@x2}, #{@y2}}"
     
 class Box
   constructor: (@x, @y, @width, @height) -> return
-  toRect: -> this
+  toRect: (out) -> out.set(this); return out
   toString: -> "Box({x: #{@x}, y: #{@y}, width: #{@width}, height: #{@height}})"
 
 describe 'platter: broad-phase, quad-tree', ->
   tree = null
-  beforeEach -> tree = new QuadTree({x: 0, y: 0, width: 20, height: 20}, 4, 4)
+  beforeEach -> tree = QuadTree.create({x: 0, y: 0, width: 20, height: 20}, 4, 4)
   
   it 'should insert an object that does not implement `toRect()`', ->
     object = { x: 2, y: 3, width: 5, height: 5 }
@@ -170,4 +171,4 @@ describe 'platter: broad-phase, quad-tree', ->
     tree.reset({x: 0, y: 0, width: 40, height: 40})
     expect(tree.objects.length).toBe(0)
     expect(tree.nodes?).toBe false
-    expect(tree.bounds).toEqual {x: 0, y: 0, width: 40, height: 40}
+    expect(tree.bounds).toEqual jasmine.objectContaining({x: 0, y: 0, width: 40, height: 40})

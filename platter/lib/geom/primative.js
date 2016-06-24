@@ -23,6 +23,8 @@ define(['exports', '../space/node'], function (exports, _spaceNode) {
   Primative = (function (superClass) {
     extend(Primative, superClass);
 
+    Primative.init = function (instance) {};
+
     Object.defineProperty(Primative.prototype, 'x', {
       get: function get() {
         var ref;
@@ -43,12 +45,39 @@ define(['exports', '../space/node'], function (exports, _spaceNode) {
       }
     });
 
+    Object.defineProperty(Primative.prototype, 'proxy', {
+      get: function get() {
+        return this._proxy != null ? this._proxy : this._proxy = this.makeProxy();
+      }
+    });
+
     function Primative() {
       this._parent = null;
+      this._proxy = null;
     }
 
+    Primative.prototype.destroy = function () {
+      Primative.__super__.destroy.call(this);
+      if (this._proxy != null) {
+        this._proxy.release();
+        return this._proxy = null;
+      }
+    };
+
+    Primative.prototype.support = function () {
+      throw new Error('not implemented');
+    };
+
+    Primative.prototype.centerOf = function () {
+      throw new Error('not implemented');
+    };
+
+    Primative.prototype.makeProxy = function () {
+      throw new Error('not implemented');
+    };
+
     Primative.prototype.toString = function () {
-      return 'Platter.geom.Primative#' + this.id + '({x: ' + this.x + ', y: ' + this.y + '})';
+      return "Platter.geom.Primative#" + this.id + "({x: " + this.x + ", y: " + this.y + "})";
     };
 
     return Primative;
@@ -63,27 +92,6 @@ define(['exports', '../space/node'], function (exports, _spaceNode) {
       apply: function apply(x, y) {
         this.x += x;
         return this.y += y;
-      }
-    },
-    filter: {
-      init: function init() {
-        return this.filter = {
-          group: 0,
-          mask: 0
-        };
-      },
-      seal: function seal() {
-        return Object.freeze(this.filter);
-      }
-    },
-    group: {
-      apply: function apply(flags) {
-        return this.filter.group = this.filter.group | flags;
-      }
-    },
-    mask: {
-      apply: function apply(flags) {
-        return this.filter.mask = this.filter.mask | flags;
       }
     }
   };

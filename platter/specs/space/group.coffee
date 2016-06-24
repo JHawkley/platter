@@ -1,14 +1,20 @@
 `import Factory from 'platter/factory/base'`
 `import Group from 'platter/space/group'`
+`import { group as tGroup } from 'platter/space/_type'`
 `import { methods as groupMethods } from 'platter/space/group'`
-`import Node from 'platter/space/node'`
+`import Node, { methods as nodeMethods } from 'platter/space/node'`
+`import CallbackType from 'platter/callback/type'`
+`import CallbackOptions from 'platter/callback/options'`
 `import { iterateOn } from 'platter/utils/es6'`
+`import Rect from 'platter/math/rect'`
+
+tTestBox = CallbackType.add 'test-box'
+tAll = CallbackType.get 'all'
 
 class Box
-  typeGroup = Node.addType 'test-box'
   constructor: (@x, @y, @width, @height) ->
-    @type = typeGroup
-  toRect: -> this
+    @type = tTestBox
+  toRect: (out) -> out.set(this); return out
   toString: -> "Box({x: #{@x}, y: #{@y}, width: #{@width}, height: #{@height}})"
 
 describe 'platter: space, group', ->
@@ -19,8 +25,10 @@ describe 'platter: space, group', ->
     expect(Group.create() instanceof Node).toBe true
   
   describe 'methods', ->
-    fBox = Node.types['test-box']
-    fGroup = Node.types['group']
+    
+    it 'should have methods provided by Node', ->
+      for k, v of nodeMethods
+        expect(Group.hasMethod(k, v)).toBe true
     
     it 'should have methods provided for itself', ->
       for k, v of groupMethods
@@ -32,59 +40,70 @@ describe 'platter: space, group', ->
         test = {}
         groupMethods.filter.init.call(test)
         
-        expect(test.filter.allowed).toBe 0x00000000
-        expect(test.filter.excluded).toBe 0x00000000
+        expect(test.filter.included).toEqual []
+        expect(test.filter.excluded).toEqual []
         
-        expect(Object.isFrozen(test.filter)).toBe false
         groupMethods.filter.seal.call(test)
-        expect(Object.isFrozen(test.filter)).toBe true
+        expect(test.filter instanceof CallbackOptions).toBe true
+        expect(test.filter.isSealed).toBe true
+        
+        expect(test.filter.included).toBe 0x00000000
+        expect(test.filter.excluded).toBe 0x00000000
     
-    describe 'allow', ->
+    describe 'include', ->
       
-      it 'should add a type to the allowed filter', ->
-        test = { filter: { allowed: 0x00000000 } }
+      it 'should add a type to the included filter', ->
+        test = { filter: { included: [], excluded: [] } }
         
-        groupMethods.allow.apply.call(test, fBox)
+        groupMethods.include.apply.call(test, tTestBox)
         
-        expect(test.filter.allowed).toBe fBox
-        
-        groupMethods.allow.apply.call(test, fGroup)
-        
-        expect(test.filter.allowed).toBe(fBox | fGroup)
+        expect(test.filter.included).toContain tTestBox
       
-      it 'should allow all if no types are specified', ->
-        test = { filter: { allowed: 0x00000000 } }
+      it 'should add several types to the included filter', ->
+        test = { filter: { included: [], excluded: [] } }
         
-        groupMethods.allow.finalize.call(test)
+        groupMethods.include.apply.call(test, [tTestBox, tGroup])
         
-        expect(test.filter.allowed).toBe(~0x00000000 >>> 0)
+        expect(test.filter.included).toContain tTestBox
+        expect(test.filter.included).toContain tGroup
+      
+      it 'should include all if no types are specified', ->
+        test = { filter: { included: [], excluded: [] } }
+        
+        groupMethods.include.finalize.call(test)
+        
+        expect(test.filter.included).toContain tAll
       
       it 'should make no changes if a type is specified', ->
-        test = { filter: { allowed: fBox } }
+        test = { filter: { included: [tTestBox], excluded: [] } }
         
-        groupMethods.allow.finalize.call(test)
+        groupMethods.include.finalize.call(test)
         
-        expect(test.filter.allowed).toBe fBox
+        expect(test.filter.included).toContain tTestBox
     
     describe 'exclude', ->
       
       it 'should add a type to the excluded filter', ->
-        test = { filter: { excluded: 0x00000000 } }
+        test = { filter: { included: [], excluded: [] } }
         
-        groupMethods.exclude.apply.call(test, fBox)
+        groupMethods.exclude.apply.call(test, tTestBox)
         
-        expect(test.filter.excluded).toBe fBox
+        expect(test.filter.excluded).toContain tTestBox
+      
+      it 'should add several types to the allowed filter', ->
+        test = { filter: { included: [], excluded: [] } }
         
-        groupMethods.exclude.apply.call(test, fGroup)
+        groupMethods.exclude.apply.call(test, [tTestBox, tGroup])
         
-        expect(test.filter.excluded).toBe(fBox | fGroup)
+        expect(test.filter.excluded).toContain tTestBox
+        expect(test.filter.excluded).toContain tGroup
     
-    describe 'type', ->
+    describe 'typeGroup', ->
       
       it 'should set a type of `group`', ->
-        test = {}
-        groupMethods.type.finalize.call(test)
-        expect(test.type).toBe(Node.types['group'])
+        test = { type: [] }
+        groupMethods.typeGroup.finalize.call(test)
+        expect(test.type).toContain tGroup
   
   describe 'implementation', ->
     
@@ -110,7 +129,7 @@ describe 'platter: space, group', ->
         expect(group.children).toContain childGroup
         expect(group.children.length).toBe 3
     
-      it 'should adopt multiple children with one call to `adopt()`', ->
+      it 'should adopt multiple children with one call to `adoptObjs()`', ->
         child1 = new Box(12, 6, 20, 10)
         child2 = new Box(82, 6, 8, 8)
         childGroup = Group.create(40, 10)
@@ -122,7 +141,7 @@ describe 'platter: space, group', ->
         allChildren = [child1, child2, childGroup, otherChildren[0], otherChildren[1]]
         
         expect(group.children.length).toBe 0
-        group.adopt(child1, child2, childGroup, otherChildren...)
+        group.adoptObjs(child1, child2, childGroup, otherChildren...)
         for child in allChildren
           expect(group.children).toContain child
       
@@ -139,8 +158,7 @@ describe 'platter: space, group', ->
         expect(fn).toThrow()
     
     describe 'exclusion of children', ->
-      fBox = Node.types['test-box']
-      fGroup = Node.types['group']
+      
       child1 = child2 = childGroup = null
       
       beforeEach ->
@@ -151,7 +169,7 @@ describe 'platter: space, group', ->
       describe 'by explicitly allowing specific node types', ->
       
         it 'should not adopt objects that are not specifically allowed', ->
-          group = Group.define().allow(fBox).create(0, 0)
+          group = Group.define().include(tTestBox).create(0, 0)
           
           fn1 = -> group.adopt(child1, child2)
           fn2 = -> group.adopt(childGroup)
@@ -171,7 +189,7 @@ describe 'platter: space, group', ->
       describe 'by explicitly excluding specific node types', ->
         
         it 'should not adopt objects that are not specifically allowed', ->
-          group = Group.define().exclude(fBox).create(0, 0)
+          group = Group.define().exclude(tTestBox).create(0, 0)
           
           fn1 = -> group.adopt(child1, child2)
           fn2 = -> group.adopt(childGroup)
@@ -180,7 +198,7 @@ describe 'platter: space, group', ->
           expect(fn2).not.toThrow()
         
         it 'should give priority to exclusion', ->
-          group = Group.define().allow(fBox).exclude(fBox).create(0, 0)
+          group = Group.define().include(tTestBox).exclude(tTestBox).create(0, 0)
           
           fn1 = -> group.adopt(child1, child2)
           fn2 = -> group.adopt(childGroup)
@@ -201,7 +219,7 @@ describe 'platter: space, group', ->
           new Box(50, 13, 8, 8)
           new Box(43, 6, 16, 8)
         ]
-        group.adopt(child1, child2, childGroup, otherChildren...)
+        group.adoptObjs(child1, child2, childGroup, otherChildren...)
       
       it 'should orphan a child', ->
         expect(group.children.length).toBe 5
@@ -218,7 +236,7 @@ describe 'platter: space, group', ->
         expect(group.children).toContain otherChildren[0]
         expect(group.children).toContain otherChildren[1]
         
-        group.orphan(child1, otherChildren...)
+        group.orphanObjs(child1, otherChildren...)
         
         expect(group.children).not.toContain child1
         expect(group.children).not.toContain otherChildren[0]
@@ -242,8 +260,8 @@ describe 'platter: space, group', ->
         child3 = new Box(50, 13, 8, 8)
         child4 = new Box(43, 6, 16, 8)
         childGroup = Group.create(40, 10)
-        childGroup.adopt(child3, child4)
-        group.adopt(child1, child2, childGroup)
+        childGroup.adoptObjs(child3, child4)
+        group.adoptObjs(child1, child2, childGroup)
       
       it 'should iterate over leaves in the tree', ->
         results = []
@@ -263,7 +281,7 @@ describe 'platter: space, group', ->
       it 'should return a 0 width/height rectangle if empty', ->
         expected = { x: 30, y: 40, width: 0, height: 0 }
         expect(group.children.length).toBe 0
-        rect = group.toRect()
+        rect = group.toRect(Rect.create())
         for prop, val of expected
           expect(rect[prop]).toBe val
     
@@ -272,8 +290,8 @@ describe 'platter: space, group', ->
         child2 = new Box(82, 17, 8, 8)
         expected = { x: 42, y: 46, width: 78, height: 19 }
         
-        group.adopt(child1, child2)
-        rect = group.toRect()
+        group.adoptObjs(child1, child2)
+        rect = group.toRect(Rect.create())
         for prop, val of expected
           expect(rect[prop]).toBe val
       
@@ -283,7 +301,7 @@ describe 'platter: space, group', ->
         childGroup = Group.create(98, 78)
         expected = { x: 42, y: 46, width: 78, height: 19 }
         
-        group.adopt(child1, child2, childGroup)
-        rect = group.toRect()
+        group.adoptObjs(child1, child2, childGroup)
+        rect = group.toRect(Rect.create())
         for prop, val of expected
           expect(rect[prop]).toBe val

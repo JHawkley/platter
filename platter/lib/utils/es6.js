@@ -12,7 +12,7 @@ define(['exports'], function (exports) {
     exports.es6_iterateOn = es6_iterateOn = null;
   }
 
-  exports.iteratorSymbol = iteratorSymbol = (ref = typeof Symbol !== 'undefined' && Symbol !== null ? Symbol.iterator : void 0) != null ? ref : '@@iterator';
+  exports.iteratorSymbol = iteratorSymbol = (ref = typeof Symbol !== "undefined" && Symbol !== null ? Symbol.iterator : void 0) != null ? ref : '@@iterator';
 
   exports.es5_iterateOn = es5_iterateOn = function (iterable, fn) {
     var it, iterator;

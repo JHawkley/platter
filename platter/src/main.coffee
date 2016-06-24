@@ -8,7 +8,7 @@
 `import Chain from './geom/chain'`
 
 `import Matrix from './math/matrix'`
-`import { MutableVector, ImmutableVector, SimpleVector } from './math/vector'`
+`import { MutableVector, ImmutableVector } from './math/vector'`
 
 `import Node from './space/node'`
 `import Group from './space/group'`
@@ -20,7 +20,7 @@
 Platter = {
   broadphase: { QuadTree }
   geom: { Point, Line, Circle, AABB, ChainLink, Chain }
-  math: { Matrix, MutableVector, ImmutableVector, SimpleVector }
+  math: { Matrix, MutableVector, ImmutableVector }
   space: { Node, Group, Container, Kinematic, Dynamic, World }
 }
 
