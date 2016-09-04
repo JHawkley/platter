@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "target": "es2015",
+        "module": "es2015",
+        "moduleResolution": "classic",
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "experimentalDecorators": true,
+        "outDir": "./tmp/bin-es6",
+        "baseUrl": "./src",
+        "paths": {
+            "babel-polyfill": [
+                "../node_modules/babel-polyfill/dist/polyfill.js"
+            ],
+            "*": [
+                "../lib/*"
+            ]
+        }
+    },
+    "include": ["src/**/*.ts"],
+    "exclude": ["node_modules/**", "src/**/*$debug.ts"]
+}

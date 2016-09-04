@@ -2,5 +2,7 @@
 /.c9/**
 /node_modules
 /node_modules/**
-/platter/tmp
-/platter/tmp/**
+/tmp
+/tmp/**
+/bin
+/**/desktop.ini

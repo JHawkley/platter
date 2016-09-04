@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Platter Playground</title>
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+        <script src="../node_modules/requirejs/require.js"></script>
+        <script>
+            require.config({
+                baseUrl: "../bin/",
+                paths: {
+                    "almond": "../node_modules/almond/almond"
+                },
+                deps: ['../lib/babel-helpers', '../node_modules/babel-polyfill/dist/polyfill']
+            });
+        </script>
+        <script>
+            require(['platter/geom/support-functions', 'platter/math/mpr'], function(supports, mpr) {
+                function Rect(x, y, width, height) {
+                    this.x = x || 0;
+                    this.y = y || 0;
+                    this.width = width || 5;
+                    this.height = height || 5;
+                    this.type = 'rect';
+                };
+                Rect.prototype.support = function (out, v) {
+                    supports.aabb(out, this, v);
+                    return out;
+                };
+                Rect.prototype.centerOf = function (out) {
+                    out.x = this.x + this.width * 0.5;
+                    out.y = this.y + this.height * 0.5;
+                    return out;
+                };
+                window.Rect = Rect;
+
+                function Circle(x, y, radius) {
+                    this.x = x || 0;
+                    this.y = y || 0;
+                    this.radius = radius || 5;
+                    this.type = 'circle';
+                }
+                Circle.prototype.support = function(out, v) {
+                    supports.circle(out, this, v);
+                    return out;
+                }
+                Circle.prototype.centerOf = function(out) {
+                    out.x = this.x;
+                    out.y = this.y;
+                    return out;
+                }
+                window.Circle = Circle;
+
+                function Point(x, y) {
+                    this.x = x || 0;
+                    this.y = y || 0;
+                    this.type = 'point';
+                }
+                Point.prototype.support = function(out, v) {
+                    supports.point(out, this, v);
+                    return out;
+                }
+                Point.prototype.centerOf = function(out) {
+                    out.x = this.x;
+                    out.y = this.y;
+                    return out;
+                }
+                window.Point = Point;
+
+                function Line(x1, y1, x2, y2) {
+                    this.point1 = { x: x1 || 0, y: y1 || 0 };
+                    this.point2 = { x: x2 || 0, y: y2 || 0 };
+                    if (this.point1.x === this.point2.x && this.point1.y === this.point2.y)
+                        throw new Error('not a line');
+                    this.type = 'line';
+                }
+                Line.prototype.support = function(out, v) {
+                    supports.line(out, this, v);
+                    return out;
+                }
+                Line.prototype.centerOf = function(out) {
+                    out.x = (this.point1.x + this.point2.x) * 0.5;
+                    out.y = (this.point1.y + this.point2.y) * 0.5;
+                    return out;
+                }
+                Object.defineProperty(Line.prototype, 'x', {
+                    get: function () { return this.point1.x; },
+                    set: function (v) {
+                        var d = v - this.point1.x;
+                        this.point1.x = v;
+                        this.point2.x += d;
+                    }
+                });
+                Object.defineProperty(Line.prototype, 'y', {
+                    get: function () { return this.point1.y; },
+                    set: function (v) {
+                        var d = v - this.point1.y;
+                        this.point1.y = v;
+                        this.point2.y += d;
+                    }
+                });
+                window.Line = Line;
+                
+                window.mpr = mpr;
+            });
+        </script>
+        <script>
+            var width = 500, height = 500;
+            var hWidth = width * 0.5, hHeight = height * 0.5;
+
+            var keys = [];
+            window.onkeyup = function(e) { keys[e.keyCode] = false; }
+            window.onkeydown = function(e) { keys[e.keyCode] = true; }
+            var kLeft = 37, kUp = 38, kRight = 39, kDown = 40;
+
+            function circFilter(d) { return d.type === 'circle'; }
+            function rectFilter(d) { return d.type === 'rect'; }
+            function pointFilter(d) { return d.type === 'point'; }
+            function lineFilter(d) { return d.type === 'line'; }
+
+            function setupD3(onMouse, onDebug) {
+                var svg = d3.select('body').append('svg')
+                    .attr('width', width)
+                    .attr('height', height);
+                var g = svg.append('g').attr('transform', ['translate(', hWidth, ', ', hHeight, ')'].join(''));
+                // Origin.
+                g.append('circle')
+                    .attr('cx', 0)
+                    .attr('cy', 0)
+                    .attr('r', 2);
+
+                svg.on('mousemove', onMouse);
+                svg.on('click', onDebug);
+
+                return [svg, g];
+            }
+
+            function drawPortal(portal, g) {
+                var links = [
+                    [portal.a, portal.viewPoint],
+                    [portal.viewPoint, portal.b],
+                    [portal.b, portal.a]
+                ];
+
+                var minkowski = g.selectAll('line.minkowski').data(links);
+                minkowski.exit().remove();
+                minkowski.enter().append('line')
+                    .classed('minkowski', true)
+                    .attr('stroke', 'black');
+                minkowski
+                    .attr('stroke-dasharray', function (d, i) { return i === 2 ? '5, 5' : 'none' })
+                    .attr('x1', function (d) { return d[0].x; })
+                    .attr('y1', function (d) { return d[0].y; })
+                    .attr('x2', function (d) { return d[1].x; })
+                    .attr('y2', function (d) { return d[1].y; });
+            }
+
+            window.testMPRCollision = function (body1, body2) {
+                var onMouse = function() {
+                    var mouse = d3.mouse(this);
+                    body2.x = mouse[0] - hWidth;
+                    body2.y = mouse[1] - hHeight;
+                };
+                var doDebug = false;
+                var onDebug = function() {
+                    doDebug = true;
+                };
+
+                var setup = setupD3(onMouse, onDebug);
+                var svg = setup[0];
+                var g = setup[1];
+                var text = svg.append('text').attr('x', 15).attr('y', 15);
+
+                function onFrame() {
+                    var result = onFrameMPR(body1, body2, g, text, doDebug);
+                    drawPortal(result[1], g);
+                    doDebug = false;
+                    window.requestAnimationFrame(onFrame);
+                }
+                
+                window.requestAnimationFrame(onFrame);
+            }
+
+            function onFrameMPR(body1, body2, g, text, doDebug) {
+                var bodies = g.selectAll('g.body').data([body1, body2]);
+                var enterBodies = bodies
+                    .enter()
+                        .append('g')
+                        .classed('body', true)
+                        .attr('stroke', function (d, i) { return (i ? 'green' : 'blue'); })
+                        .attr('fill', 'red')
+                        .attr('fill-opacity', 0);
+
+                enterBodies.filter(pointFilter)
+                    .append('circle')
+                    .classed('point', true);
+                enterBodies.filter(lineFilter)
+                    .append('line');
+                enterBodies.filter(circFilter)
+                    .append('circle')
+                    .classed('circle', true);
+                enterBodies.filter(rectFilter)
+                    .append('rect');
+                
+                bodies.selectAll('circle.point')
+                    .attr('cx', function (d) { return d.x; })
+                    .attr('cy', function (d) { return d.y; })
+                    .attr('r', 1);
+                
+                bodies.selectAll('line')
+                    .attr('x1', function (d) { return d.point1.x; })
+                    .attr('y1', function (d) { return d.point1.y; })
+                    .attr('x2', function (d) { return d.point2.x; })
+                    .attr('y2', function (d) { return d.point2.y; });
+                
+                bodies.selectAll('circle.circle')
+                    .attr('cx', function (d) { return d.x; })
+                    .attr('cy', function (d) { return d.y; })
+                    .attr('r', function (d) { return d.radius; });
+                
+                bodies.selectAll('rect')
+                    .attr('x', function (d) { return d.x; })
+                    .attr('y', function (d) { return d.y; })
+                    .attr('width', function (d) { return d.width; })
+                    .attr('height', function (d) { return d.height; });
+                
+                if (doDebug) {
+                    doDebug = false;
+                    debugger;
+                }
+
+                var result = mpr.mpr(body1, body2);
+                bodies.attr('fill-opacity', function () { return result[0] ? 0.2 : 0; });
+                text
+                    .text((result[2] || 0) + ' iters')
+                    .attr('fill', function () { return result[0] ? 'red' : 'black'; });
+                
+                return result;
+            }
+
+            window.testMTV = function (body1, body2) {
+                var onMouse = function() {
+                    var mouse = d3.mouse(this);
+                    body2.x = mouse[0] - hWidth;
+                    body2.y = mouse[1] - hHeight;
+                };
+                var doDebug = false;
+                var onDebug = function() {
+                    doDebug = true;
+                };
+
+                var setup = setupD3(onMouse, onDebug);
+                var svg = setup[0];
+                var g = setup[1];
+                var textUL = svg.append('text').attr('x', 15).attr('y', 15);
+                var textLL = svg.append('text').attr('x', 15).attr('y', height - 20);
+
+                var translationVector = { x: 0, y: 0 };
+                var translationAmount = 0.01;
+
+                function onFrame() {
+                    var result1 = onFrameMPR(body1, body2, g, textUL, doDebug);
+                    var result2 = onFrameMTV(body1, body2, result1, g, textLL, doDebug);
+                    drawPortal(result2[1], g);
+                    doDebug = false;
+                    window.requestAnimationFrame(onFrame);
+                }
+                
+                window.requestAnimationFrame(onFrame);
+            }
+
+            function onFrameMTV(body1, body2, mprResult, g, text, doDebug) {
+                if (!mprResult[0]) {
+                    text.text('--');
+                    g.selectAll('line.mtv').data([]).exit().remove();
+                    g.selectAll('line.portal').data([]).exit().remove();
+                    g.selectAll('g.translated-body').data([]).exit().remove();
+                    return [null, mprResult[1], 0];
+                }
+
+                if (doDebug) {
+                    doDebug = false;
+                    debugger;
+                }
+                
+                var mtvResult = mpr.mtv(body1, body2, mprResult[1]);
+                var mtv = mtvResult[0];
+                var portal = mtvResult[1];
+                var iter = mtvResult[2];
+                var str = '';
+                str += (iter || 0) + ' iters';
+                str += '; (' + mtv.x.toFixed(2) + ', ' + mtv.y.toFixed(2) + ')';
+                str += '; ' + Math.sqrt(mtv.x*mtv.x + mtv.y*mtv.y).toFixed(3) + ' len';
+                text.text(str);
+
+                var mtvLine = g.selectAll('line.mtv').data([mtv]);
+                mtvLine.exit().remove();
+                mtvLine.enter().append('line')
+                    .classed('mtv', true)
+                    .attr('stroke', 'gray');
+                mtvLine
+                    .attr('x1', 0)
+                    .attr('y1', 0)
+                    .attr('x2', function (d) { return d.x; })
+                    .attr('y2', function (d) { return d.y; });
+                
+                var ab = portal.b.sub(portal.a).unit();
+                var surface = { point1: mtv.add(ab.mul(5)), point2: mtv.add(ab.mul(-5)) };
+                var portalLine = g.selectAll('line.portal').data([surface]);
+                portalLine.exit().remove();
+                portalLine.enter().append('line')
+                    .classed('portal', true)
+                    .attr('stroke', 'lime');
+                portalLine
+                    .attr('x1', function (d) { return d.point1.x; })
+                    .attr('y1', function (d) { return d.point1.y; })
+                    .attr('x2', function (d) { return d.point2.x; })
+                    .attr('y2', function (d) { return d.point2.y; });
+                
+                var bodies = g.selectAll('g.translated-body').data([body2]);
+                var enterBodies = bodies
+                    .enter()
+                        .append('g')
+                        .classed('translated-body', true)
+                        .attr('stroke', 'gray')
+                        .attr('stroke-dasharray', '5, 5')
+                        .attr('fill', 'white')
+                        .attr('fill-opacity', 0);
+
+                enterBodies.filter(pointFilter)
+                    .append('circle')
+                    .classed('point', true);
+                enterBodies.filter(lineFilter)
+                    .append('line');
+                enterBodies.filter(circFilter)
+                    .append('circle')
+                    .classed('circle', true);
+                enterBodies.filter(rectFilter)
+                    .append('rect');
+                
+                bodies.selectAll('circle.point')
+                    .attr('cx', function (d) { return d.x + mtv.x; })
+                    .attr('cy', function (d) { return d.y + mtv.y; })
+                    .attr('r', 1);
+                
+                bodies.selectAll('line')
+                    .attr('x1', function (d) { return d.point1.x + mtv.x; })
+                    .attr('y1', function (d) { return d.point1.y + mtv.y; })
+                    .attr('x2', function (d) { return d.point2.x + mtv.x; })
+                    .attr('y2', function (d) { return d.point2.y + mtv.y; });
+                
+                bodies.selectAll('circle.circle')
+                    .attr('cx', function (d) { return d.x + mtv.x; })
+                    .attr('cy', function (d) { return d.y + mtv.y; })
+                    .attr('r', function (d) { return d.radius; });
+                
+                bodies.selectAll('rect')
+                    .attr('x', function (d) { return d.x + mtv.x; })
+                    .attr('y', function (d) { return d.y + mtv.y; })
+                    .attr('width', function (d) { return d.width; })
+                    .attr('height', function (d) { return d.height; });
+                
+                return mtvResult;
+            }
+
+            window.testMPRTranslation = function () {
+                var translationVector = { x: 0, y: 0 };
+                var translationAmount = 0.01;
+
+                function onFrame() {
+                    if (keys[kLeft])
+                        translationVector.x -= translationAmount;
+                    else if(keys[kRight])
+                        translationVector.x += translationAmount;
+                    if (keys[kUp])
+                        translationVector.y -= translationAmount;
+                    else if(keys[kDown])
+                        translationVector.y += translationAmount;
+                    var result = onFrameMPR(body1, body2, g, text, doDebug);
+                    onFrameMTV(body1, body2, translationVector, g, text, doDebug);
+                    window.requestAnimationFrame(onFrame);
+                }
+            }
+
+            var testID = null;
+
+            window.startGCTest1 = function () {
+                if (testID !== null) return true;
+                function TestFN(x, y) {
+                    return { x: x + 4, y: y + 8 };
+                }
+                function TestGC() {
+                    for (var i = 0; i < 1000; i++) {
+                        var result = TestFN(Math.random() * 10, Math.random() * 10);
+                        window._testOUTX = result.x;
+                        window._testOUTY = result.y;
+                    }
+                    testID = window.requestAnimationFrame(TestGC);
+                }
+                testID = window.requestAnimationFrame(TestGC);
+            }
+
+            window.startGCTest2 = function () {
+                if (testID !== null) return true;
+                function TestFN(x, y, out) {
+                    out.x = x + 4; out.y = y + 8;
+                    return out;
+                }
+                function TestGC() {
+                    for (var i = 0; i < 1000; i++) {
+                        var result = TestFN(Math.random() * 10, Math.random() * 10, { x: 0, y: 0 });
+                        window._testOUTX = result.x;
+                        window._testOUTY = result.y;
+                    }
+                    testID = window.requestAnimationFrame(TestGC);
+                }
+                testID = window.requestAnimationFrame(TestGC);
+            }
+
+            window.startGCTest3 = function () {
+                if (testID !== null) return true;
+                function TestFN(x, y) {
+                    return [x + 4, y + 8];
+                }
+                function TestGC() {
+                    for (var i = 0; i < 1000; i++) {
+                        var result = TestFN(Math.random() * 10, Math.random() * 10);
+                        window._testOUTX = result[0];
+                        window._testOUTY = result[1];
+                    }
+                    testID = window.requestAnimationFrame(TestGC);
+                }
+                testID = window.requestAnimationFrame(TestGC);
+            }
+
+            window.stopGCTest = function () {
+                window.cancelAnimationFrame(testID);
+                testID = null;
+            }
+        </script>
+    </head>
+    <body>
+        <h1>Playground -- Use Console</h1>
+    </body>
+</html>

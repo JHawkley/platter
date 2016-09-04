@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "target": "es2015",
+        "module": "es2015",
+        "moduleResolution": "classic",
+        "outDir": "./tmp/specHelpers",
+        "baseUrl": "./specs",
+        "paths": {
+            "platter/*": [
+                "../src/platter/*"
+            ],
+            "babel-polyfill": [
+                "../node_modules/babel-polyfill/dist/polyfill.js"
+            ],
+            "*": [
+                "../lib/*"
+            ]
+        }
+    },
+    "include": ["specHelpers/**/*.ts"],
+    "exclude": ["node_modules/**"]
+}
