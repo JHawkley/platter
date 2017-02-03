@@ -4,6 +4,7 @@ import Rect from '../math/rect';
 import ProxyBase from '../phys/proxy-base';
 import VectorLike from '../types/vector-like';
 import compileMethods from '../factory/compile-methods';
+import CollisionFrame from '../phys/collision-frame';
 import { getOrElse } from 'common/monads';
 
 type DataPrimative = {
@@ -51,10 +52,10 @@ abstract class Primative extends Node {
    * Creates a proxy object, setting the given collision frame as the proxy's owner.
    * 
    * @abstract
-   * @param {*} owner
+   * @param {CollisionFrame} owner
    * @returns {ProxyBase<any>}
    */
-  abstract makeProxyFor(owner: any): ProxyBase<any>;
+  abstract makeProxyFor(owner: CollisionFrame): ProxyBase<any>;
 
   /**
    * Gets a support point for MPR collision calculations, using the given vector `v`,

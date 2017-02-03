@@ -5,9 +5,10 @@ import Primative from '../geom/primative';
 import { Line } from '../geom/line';
 import ProxyBase from './proxy-base';
 import Node from '../space/node';
-import { Kinematic } from '../space/kinematic';
+import { Dynamic } from '../space/dynamic';
 import Matrix from '../math/matrix';
 import Rect from '../math/rect';
+import CollisionFrame from './collision-frame';
 import { MutableVector, BaseVector } from '../math/vector';
 import { set, setXY, add, mul } from '../math/vector-math';
 import { line as lineSupport } from '../geom/support-functions';
@@ -26,24 +27,22 @@ class ProxyLine extends ProxyBase<LineLike> {
   normal: BaseVector;
   grade: number;
 
-  static create(owner: any, proxied: Primative, standIn: LineLike): ProxyLine;
-  static create(owner: any, proxied: Line): ProxyLine;
-  static create(owner: any, proxied: Primative, standIn: LineLike = <Line> proxied) {
+  static create(owner: CollisionFrame, proxied: Primative, standIn: LineLike): ProxyLine;
+  static create(owner: CollisionFrame, proxied: Line): ProxyLine;
+  static create(owner: CollisionFrame, proxied: Primative, standIn: LineLike = <Line> proxied) {
     let instance = new ProxyLine();
     return ProxyLine.init(instance, owner, proxied, standIn);
   }
 
-  static init(instance: ProxyLine, owner: any, proxied: Primative, geometry: LineLike): ProxyLine {
-    instance.owner = owner;
-    instance.proxied = proxied;
-    instance.geometry = geometry;
+  static init(instance: ProxyLine, owner: CollisionFrame, proxied: Primative, geometry: LineLike): ProxyLine {
+    ProxyBase.init(instance, owner, proxied, geometry);
 
     let flipX = false, flipY = false;
     let { currentPos: cp, point1: p1, point2: p2 } = instance;
     let parent = proxied.parent;
     let { point1, point2 } = geometry;
     if (hasValue(parent))
-      if (parent instanceof Kinematic)
+      if (parent instanceof Dynamic)
         ({ flipX, flipY } = parent);
     
     let { point1: { x: x1, y: y1 } , point2: { x: x2, y: y2 } } = geometry;

@@ -2,10 +2,11 @@ import { hasValue } from 'common/monads';
 import VectorLike from '../types/vector-like';
 import RectLike from '../types/rect-like';
 import Primative from '../geom/primative';
+import CollisionFrame from './collision-frame';
 import { AABB } from '../geom/aabb';
 import ProxyBase from './proxy-base';
 import Node from '../space/node';
-import { Kinematic } from '../space/kinematic';
+import { Dynamic } from '../space/dynamic';
 import Matrix from '../math/matrix';
 import Rect from '../math/rect';
 import { set, setXY } from '../math/vector-math';
@@ -22,22 +23,20 @@ class ProxyAABB extends ProxyBase<RectLike> {
   get width(): number { return this.geometry.width; }
   get height(): number { return this.geometry.height; }
 
-  static create(owner: any, proxied: Primative, standIn: RectLike): ProxyAABB;
-  static create(owner: any, proxied: AABB): ProxyAABB;
-  static create(owner: any, proxied: Primative, standIn: RectLike = <AABB> proxied) {
+  static create(owner: CollisionFrame, proxied: Primative, standIn: RectLike): ProxyAABB;
+  static create(owner: CollisionFrame, proxied: AABB): ProxyAABB;
+  static create(owner: CollisionFrame, proxied: Primative, standIn: RectLike = <AABB> proxied) {
     let instance = new ProxyAABB();
     return ProxyAABB.init(instance, owner, proxied, standIn);
   }
 
-  static init(instance: ProxyAABB, owner: any, proxied: Primative, geometry: RectLike) {
-    instance.owner = owner;
-    instance.proxied = proxied;
-    instance.geometry = geometry;
+  static init(instance: ProxyAABB, owner: CollisionFrame, proxied: Primative, geometry: RectLike) {
+    ProxyBase.init(instance, owner, proxied, geometry);
 
     let flipX = false, flipY = false, cp = instance.currentPos;
     let parent = proxied.parent;
     if (hasValue(parent))
-      if (parent instanceof Kinematic)
+      if (parent instanceof Dynamic)
         ({ flipX, flipY } = parent);
     let { x, y, width, height } = geometry;
     setXY(cp, flipX ? -x : x, flipY ? -y : y);

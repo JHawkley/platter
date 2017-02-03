@@ -13,6 +13,7 @@ import VectorLike from '../types/vector-like';
 import Rect from '../math/rect';
 import RectLike from '../types/rect-like';
 import ProxyLine from '../phys/proxy-line';
+import CollisionFrame from '../phys/collision-frame';
 import { getOrElse } from 'common/monads';
 
 type DataLine = {
@@ -75,10 +76,10 @@ class Line extends Primative {
   /**
    * Creates a proxy object, setting the given collision frame as the proxy's owner.
    * 
-   * @param {*} owner
+   * @param {CollisionFrame} owner
    * @returns {ProxyLine}
    */
-  makeProxyFor(owner: any): ProxyLine {
+  makeProxyFor(owner: CollisionFrame): ProxyLine {
     return ProxyLine.create(owner, this);
   }
 

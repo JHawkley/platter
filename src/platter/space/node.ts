@@ -111,9 +111,8 @@ abstract class Node {
    * 
    * @param {NodeIterator} fn The function to apply each iteration.
    * @param {*} [thisArg] The object to be used as the current object for `fn`.
-   * @returns
    */
-  iterateUpToRoot(fn: NodeIterator, thisArg?: any) {
+  iterateUpToRoot(fn: NodeIterator, thisArg?: any): void {
     let parent = this.parent;
     while (hasValue(parent)) {
       if (fn.call(thisArg, parent) === false) return;

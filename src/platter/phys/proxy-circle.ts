@@ -5,9 +5,10 @@ import Primative from '../geom/primative';
 import { Circle } from '../geom/circle';
 import ProxyBase from './proxy-base';
 import Node from '../space/node';
-import { Kinematic } from '../space/kinematic';
+import { Dynamic } from '../space/dynamic';
 import Matrix from '../math/matrix';
 import Rect from '../math/rect';
+import CollisionFrame from './collision-frame';
 import { set, setXY } from '../math/vector-math';
 import { circle as circleSupport } from '../geom/support-functions';
 
@@ -21,22 +22,20 @@ class ProxyCircle extends ProxyBase<CircleLike> {
 
   get radius(): number { return this.geometry.radius; }
 
-  static create(owner: any, proxied: Primative, standIn: CircleLike): ProxyCircle;
-  static create(owner: any, proxied: Circle): ProxyCircle;
-  static create(owner: any, proxied: Primative, standIn: CircleLike = <Circle> proxied) {
+  static create(owner: CollisionFrame, proxied: Primative, standIn: CircleLike): ProxyCircle;
+  static create(owner: CollisionFrame, proxied: Circle): ProxyCircle;
+  static create(owner: CollisionFrame, proxied: Primative, standIn: CircleLike = <Circle> proxied) {
     let instance = new ProxyCircle();
     return ProxyCircle.init(instance, owner, proxied, standIn);
   }
 
-  static init(instance: ProxyCircle, owner: any, proxied: Primative, geometry: CircleLike) {
-    instance.owner = owner;
-    instance.proxied = proxied;
-    instance.geometry = geometry;
+  static init(instance: ProxyCircle, owner: CollisionFrame, proxied: Primative, geometry: CircleLike) {
+    ProxyBase.init(instance, owner, proxied, geometry);
 
     let flipX = false, flipY = false, cp = instance.currentPos;
     let parent = proxied.parent;
     if (hasValue(parent))
-      if (parent instanceof Kinematic)
+      if (parent instanceof Dynamic)
         ({ flipX, flipY } = parent);
     let { x, y } = geometry;
     setXY(cp, flipX ? -x : x, flipY ? -y : y);

@@ -4,9 +4,10 @@ import Primative from '../geom/primative';
 import { Point } from '../geom/point';
 import ProxyBase from './proxy-base';
 import Node from '../space/node';
-import { Kinematic } from '../space/kinematic';
+import { Dynamic } from '../space/dynamic';
 import Matrix from '../math/matrix';
 import Rect from '../math/rect';
+import CollisionFrame from './collision-frame';
 import { set, setXY } from '../math/vector-math';
 import { point as pointSupport } from '../geom/support-functions';
 
@@ -18,22 +19,20 @@ function translationIterator(anc: Node) {
 
 class ProxyPoint extends ProxyBase<VectorLike> {
 
-  static create(owner: any, proxied: Primative, standIn: VectorLike): ProxyPoint;
-  static create(owner: any, proxied: Point): ProxyPoint;
-  static create(owner: any, proxied: Primative, standIn: VectorLike = <Point> proxied) {
+  static create(owner: CollisionFrame, proxied: Primative, standIn: VectorLike): ProxyPoint;
+  static create(owner: CollisionFrame, proxied: Point): ProxyPoint;
+  static create(owner: CollisionFrame, proxied: Primative, standIn: VectorLike = <Point> proxied) {
     let instance = new ProxyPoint();
     return ProxyPoint.init(instance, owner, proxied, standIn);
   }
 
-  static init(instance: ProxyPoint, owner: any, proxied: Primative, geometry: VectorLike) {
-    instance.owner = owner;
-    instance.proxied = proxied;
-    instance.geometry = geometry;
+  static init(instance: ProxyPoint, owner: CollisionFrame, proxied: Primative, geometry: VectorLike) {
+    ProxyBase.init(instance, owner, proxied, geometry);
 
     let flipX = false, flipY = false, cp = instance.currentPos;
     let parent = proxied.parent;
     if (hasValue(parent))
-      if (parent instanceof Kinematic)
+      if (parent instanceof Dynamic)
         ({ flipX, flipY } = parent);
     let { x, y } = geometry;
     setXY(cp, flipX ? -x : x, flipY ? -y : y);

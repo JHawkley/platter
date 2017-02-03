@@ -11,6 +11,7 @@ import { aabb as aabbSupport } from './support-functions';
 import VectorLike from '../types/vector-like';
 import Rect from '../math/rect';
 import ProxyAABB from '../phys/proxy-aabb';
+import CollisionFrame from '../phys/collision-frame';
 import { hasValue, getOrElse } from 'common/monads';
 
 type DataABBB = {
@@ -39,10 +40,10 @@ class AABB extends Primative {
   /**
    * Creates a proxy object, setting the given collision frame as the proxy's owner.
    * 
-   * @param {*} owner
+   * @param {CollisionFrame} owner
    * @returns {ProxyAABB}
    */
-  makeProxyFor(owner: any): ProxyAABB {
+  makeProxyFor(owner: CollisionFrame): ProxyAABB {
     return ProxyAABB.create(owner, this);
   }
 

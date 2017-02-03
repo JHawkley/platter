@@ -175,10 +175,10 @@ class Chain extends Primative {
   /**
    * Creates a proxy object, setting the given collision frame as the proxy's owner.
    * 
-   * @param {*} owner
+   * @param {never} owner
    * @returns {ProxyAABB}
    */
-  makeProxyFor(owner: any): never {
+  makeProxyFor(owner: never): never {
     throw new Error('cannot make a proxy for chains; create proxies for its individual chain-links instead');
   }
 

@@ -1,4 +1,5 @@
 import { Generator, IGeneratorable, IGeneratorMethod } from './generator';
+import nextId from '../utils/uid';
 import { Maybe, hasValue, getOrElse } from 'common/monads';
 
 interface _GeneratorConstructor<T extends IGeneratorable, GI extends Generator<T>> {
@@ -17,7 +18,6 @@ function makeShortHandGenerator<GI>(): GI {
 class Factory<T extends IGeneratorable, GI extends Generator<T>, GC extends GeneratorConstructor<T, GI>> {
   private _GeneratorCtor: GC;
   private _SHGen: Maybe<GI>;
-  private _nextId: number;
   private _pool: Array<T>;
 
   protected get _shortHandGenerator(): GI {
@@ -127,7 +127,6 @@ class Factory<T extends IGeneratorable, GI extends Generator<T>, GC extends Gene
   constructor(Gen: GC & { new(poolInstance: Array<T>, idGetter: () => number): GI }) {
     this._GeneratorCtor = Gen;
     this._SHGen = null;
-    this._nextId = 0;
     this._pool = [];
   }
 
@@ -139,7 +138,7 @@ class Factory<T extends IGeneratorable, GI extends Generator<T>, GC extends Gene
    * @returns {GI}
    */
   define(): GI {
-    return new this._GeneratorCtor(this._pool, () => this._nextId++);
+    return new this._GeneratorCtor(this._pool, () => nextId());
   }
 
   /**

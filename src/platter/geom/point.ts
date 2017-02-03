@@ -12,6 +12,7 @@ import VectorLike from '../types/vector-like';
 import Rect from '../math/rect';
 import RectLike from '../types/rect-like';
 import ProxyPoint from '../phys/proxy-point';
+import CollisionFrame from '../phys/collision-frame';
 import { getOrElse } from 'common/monads';
 
 type DataPoint = {
@@ -35,10 +36,10 @@ class Point extends Primative {
   /**
    * Creates a proxy object, setting the given collision frame as the proxy's owner.
    * 
-   * @param {*} owner
+   * @param {CollisionFrame} owner
    * @returns {ProxyPoint}
    */
-  makeProxyFor(owner: any): ProxyPoint {
+  makeProxyFor(owner: CollisionFrame): ProxyPoint {
     return ProxyPoint.create(owner, this);
   }
 

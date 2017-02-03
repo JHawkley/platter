@@ -4,7 +4,10 @@ import LineLike from '../types/line-like';
 import Primative from '../geom/primative';
 import { Line } from '../geom/line';
 import { ChainLink } from '../geom/chain-link';
-import { Kinematic } from '../space/kinematic';
+import { Dynamic } from '../space/dynamic';
+import { Group } from '../space/group';
+import CollisionFrame from './collision-frame';
+import TOIIsland from './toi-island';
 
 class ProxyChainLink extends ProxyLine {
 
@@ -25,18 +28,18 @@ class ProxyChainLink extends ProxyLine {
 
   private _swapAdjacentLinks: boolean;
 
-  static create(owner: any, proxied: ChainLink): ProxyChainLink {
+  static create(owner: CollisionFrame, proxied: ChainLink): ProxyChainLink {
     let instance = new ProxyChainLink();
     return ProxyChainLink.init(instance, owner, proxied);
   }
 
-  static init(instance: ProxyChainLink, owner: any, proxied: ChainLink): ProxyChainLink {
+  static init(instance: ProxyChainLink, owner: CollisionFrame, proxied: ChainLink): ProxyChainLink {
     ProxyLine.init(instance, owner, proxied, proxied);
 
     let flipX = false, flipY = false;
-    let parent = proxied.parent;
+    let parent = proxied.host.parent;
     if (hasValue(parent))
-      if (parent instanceof Kinematic)
+      if (parent instanceof Dynamic)
         ({ flipX, flipY } = parent);
     
     instance._swapAdjacentLinks = (flipX !== flipY);
@@ -44,6 +47,17 @@ class ProxyChainLink extends ProxyLine {
   }
 
   static reclaim(instance: ProxyChainLink) { return; }
+
+  /**
+   * Gets the parent for a proxied primative.  This is mostly a helper to
+   * deal with chain-links.
+   * 
+   * @protected
+   * @returns {Maybe<Group>}
+   */
+  protected _getParent(): Maybe<Group> {
+    return this.proxied.host.parent;
+  }
 
   toString(): string {
     let pt1 = `{x: ${this.point1.x}, y: ${this.point1.y}}`;

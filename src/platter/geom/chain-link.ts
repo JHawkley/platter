@@ -13,6 +13,7 @@ import { Group } from '../space/group';
 import VectorLike from '../types/vector-like';
 import RectLike from '../types/rect-like';
 import ProxyChainLink from '../phys/proxy-chain-link';
+import CollisionFrame from '../phys/collision-frame';
 import { Maybe, hasValue, getOrElse } from 'common/monads';
 
 type InstanceDataChainLink = {
@@ -54,6 +55,16 @@ class ChainLink extends Line {
    */
   get next(): Maybe<ChainLink> { return this._instanceData.host.getNext(this); }
 
+  /**
+   * The group that contains this node.
+   * NOTE: This always throws an error for chain-link primatives.
+   * 
+   * @readonly
+   * @type {never}
+   * @memberOf ChainLink
+   */
+  get parent(): never { throw new Error('chain-links cannot have parents; use `host.parent` instead'); }
+
   private _instanceData: InstanceDataChainLink;
 
   /**
@@ -83,10 +94,10 @@ class ChainLink extends Line {
   /**
    * Creates a proxy object, setting the given collision frame as the proxy's owner.
    * 
-   * @param {*} owner
+   * @param {CollisionFrame} owner
    * @returns {ProxyChainLink}
    */
-  makeProxyFor(owner: any): ProxyChainLink {
+  makeProxyFor(owner: CollisionFrame): ProxyChainLink {
     return ProxyChainLink.create(owner, this);
   }
 

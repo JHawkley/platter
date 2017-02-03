@@ -12,6 +12,7 @@ import VectorLike from '../types/vector-like';
 import Rect from '../math/rect';
 import RectLike from '../types/rect-like';
 import ProxyCircle from '../phys/proxy-circle';
+import CollisionFrame from '../phys/collision-frame';
 import { hasValue, getOrElse } from 'common/monads';
 
 type DataCircle = {
@@ -44,10 +45,10 @@ class Circle extends Primative {
   /**
    * Creates a proxy object, setting the given collision frame as the proxy's owner.
    * 
-   * @param {*} owner
+   * @param {CollisionFrame} owner
    * @returns {ProxyCircle}
    */
-  makeProxyFor(owner: any): ProxyCircle {
+  makeProxyFor(owner: CollisionFrame): ProxyCircle {
     return ProxyCircle.create(owner, this);
   }
 

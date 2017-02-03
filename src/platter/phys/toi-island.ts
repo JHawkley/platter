@@ -1,17 +1,16 @@
+import nextId from '../utils/uid';
+import CollisionFrame from './collision-frame';
 import { Maybe, hasValue, getOrElse } from 'common/monads';
 
-type Proxy = { island: Maybe<TOIIsland> };
-
-let nextID = 0;
 const pool: Array<TOIIsland> = [];
 
 function spawn(): TOIIsland { return new TOIIsland(); }
 
 /**
- * A list of proxy objects that are likely to interact with each other.
+ * A list of primatives that are likely to interact with each other.
  * 
- * If proxy A's swept bounds overlaps with proxy B's, and proxy B's
- * overlaps with proxy C's, then A, B, and C are all part of the same island,
+ * If primative A's swept bounds overlaps with primative B's, and primative B's
+ * overlaps with primative C's, then A, B, and C are all part of the same island,
  * as A affecting B can change how B may affect C.
  * 
  * This class features a simple linked-list capability that is used to rapidly
@@ -22,12 +21,12 @@ function spawn(): TOIIsland { return new TOIIsland(); }
 class TOIIsland {
 
   /**
-   * The island's current members.
+   * The island's current members, by ID.
    * 
    * @readonly
-   * @type {Array<Proxy>}
+   * @type {Array<number>}
    */
-  readonly members: Array<Proxy>;
+  readonly members: Array<number>;
   
   /**
    * The island's ID.
@@ -50,6 +49,13 @@ class TOIIsland {
    * @type {Maybe<TOIIsland>}
    */
   next: Maybe<TOIIsland>;
+
+  /**
+   * The collision frame that owns this island.
+   * 
+   * @type {CollisionFrame}
+   */
+  owner: CollisionFrame;
 
   /**
    * Whether this island is in a list.
@@ -80,13 +86,13 @@ class TOIIsland {
    * one is not available in the pool.
    * 
    * @static
-   * @param {Proxy} [a] The island's first member.
-   * @param {Proxy} [b] The island's second member.
+   * @param {number} [a] The island's first member.
+   * @param {number} [b] The island's second member.
    * @returns {TOIIsland}
    */
-  static create(a?: Proxy, b?: Proxy): TOIIsland {
+  static create(owner: CollisionFrame, a?: number, b?: number): TOIIsland {
     let instance = getOrElse(pool.pop(), spawn);
-    return TOIIsland.init(instance, a, b);
+    return TOIIsland.init(instance, owner, a, b);
   }
 
   /**
@@ -94,29 +100,31 @@ class TOIIsland {
    * 
    * @static
    * @param {TOIIsland} instance The instance to initialize.
-   * @param {Proxy} [a] The island's first member.
-   * @param {Proxy} [b] The island's second member.
+   * @param {number} [a] The island's first member.
+   * @param {number} [b] The island's second member.
    * @returns {TOIIsland}
    */
-  static init(instance: TOIIsland, a?: Proxy, b?: Proxy): TOIIsland {
+  static init(instance: TOIIsland, owner: CollisionFrame, a?: number, b?: number): TOIIsland {
+    instance.owner = owner;
     if (hasValue(a)) instance.add(a);
     if (hasValue(b)) instance.add(b);
-    return instance;
+    return owner.registerAsOwned(instance);
   }
 
   /**
-   * Reclaims an island, removing all member proxies from the island,
+   * Reclaims an island, removing all members from the island,
    * and returning it to the pool.
    * 
    * @static
    * @param {TOIIsland} instance
    */
   static reclaim(instance: TOIIsland) {
-    let members = instance.members;
+    let { owner, members } = instance;
     for (let i = 0, len = members.length; i < len; i++)
-      members[i].island = null;
+      owner.setIslandFor(i, null);
     members.length = 0;
     instance.cutOut();
+    instance.owner = null as any;
     pool.push(instance);
   }
 
@@ -146,7 +154,7 @@ class TOIIsland {
    */
   constructor() {
     this.members = [];
-    this.id = nextID++;
+    this.id = nextId();
     this.next = null;
     this.prev = null;
   }
@@ -216,26 +224,27 @@ class TOIIsland {
   }
 
   /**
-   * Attempts to add the given proxy to this island.  Will fail if the `candidate`
+   * Attempts to add the given primative to this island.  Will fail if the `candidate`
    * is a member of another island, unless `force` is set to `true`.
    * 
-   * @param {Proxy} candidate The proxy to add to the island.
-   * @param {boolean} [force=false] Whether to force the proxy into the island, even if already part of another island.
+   * @param {number} candidate The ID of the primative to add to the island.
+   * @param {boolean} [force=false] Whether to force the primative into the island, even if already part of another island.
    * @returns {this}
    */
-  add(candidate: Proxy, force = false): this {
-    if (hasValue(candidate.island)) {
-      if (candidate.island === this) return this;
+  add(candidate: number, force = false): this {
+    let cIsland = this.owner.getIslandFor(candidate);
+    if (hasValue(cIsland)) {
+      if (cIsland === this) return this;
       if (!force)
         throw new Error('candidate is already a member of another island');
     }
-    candidate.island = this;
+    this.owner.setIslandFor(candidate, this);
     this.members.push(candidate);
     return this;
   }
 
   /**
-   * Absrobs the members of the `other` island into this island.
+   * Absorbs the members of the `other` island into this island.
    * The other island will then be cut out of the island linked-list.
    * It will not release the other island, though.
    * 
@@ -262,7 +271,7 @@ class TOIIsland {
   }
 
   /**
-   * Releases this island, removing all member proxies from the island,
+   * Releases this island, removing all members from the island,
    * and returning it to the pool.
    */
   release() { TOIIsland.reclaim(this); }
